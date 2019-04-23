@@ -1,0 +1,15 @@
+apiVersion: ballast.example.com/v1
+kind: "ReservePoolPolicy"
+metadata:
+  name: example-policy
+spec:
+  projectId: my-project
+  location: my-source-region-or-zone
+  clusterName: my-cluster
+  poolName: my-source-pool
+  targetPools:
+  - poolName: my-target-pool
+    minimumInstances: 3
+    targetCapacityPercent: 30
+    cooldownSeconds: 600
+    location: my-target-region-or-zone

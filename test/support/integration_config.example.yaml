@@ -1,0 +1,5 @@
+gke:
+  cluster: gke-cluster-name
+  location: gke-zone-name
+  project: gke-project-name
+  pool: gke-pool-name

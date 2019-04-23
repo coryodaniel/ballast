@@ -1,0 +1,28 @@
+{
+	"nodePools": [
+		{
+			"autoscaling": null,
+			"initialNodeCount": 1,
+			"instanceGroupUrls": [
+				"https://www.googleapis.com/compute/v1/projects/my-project/zones/us-central1-a/instanceGroupManagers/gke-demo-demo-on-demand"
+			],
+			"name": "demo-on-demand",
+			"selfLink": "https://container.googleapis.com/v1/projects/my-project/zones/us-central1-a/clusters/demo/nodePools/demo-on-demand",
+			"status": "RUNNING"
+		},
+		{
+			"autoscaling": {
+				"enabled": true,
+				"maxNodeCount": 5,
+				"minNodeCount": 3
+      },
+      "initialNodeCount": 1,
+			"instanceGroupUrls": [
+				"https://www.googleapis.com/compute/v1/projects/my-project/zones/us-central1-a/instanceGroupManagers/gke-demo-demo-preemptible"
+			],
+			"name": "demo-preemptible",
+			"selfLink": "https://container.googleapis.com/v1/projects/my-project/zones/us-central1-a/clusters/demo/nodePools/demo-preemptible",
+			"status": "RUNNING"
+		}
+	]
+}
