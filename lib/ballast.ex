@@ -24,11 +24,25 @@ defmodule Ballast do
     {:ok, GoogleApi.Container.V1.Connection.new(tkn.token)}
   end
 
+  @doc """
+  Get the default target capacity percent for target pools.
+
+  ## Example
+      iex> Ballast.default_target_capacity_percent()
+      50
+  """
   @spec default_target_capacity_percent() :: pos_integer
   def default_target_capacity_percent() do
     get_config_value(:default_target_capacity_percent, @default_target_capacity_percent)
   end
 
+  @doc """
+  Get the default minimum instances for target pools.
+
+  ## Example
+      iex> Ballast.default_minimum_instances()
+      1
+  """
   @spec default_minimum_instances() :: pos_integer
   def default_minimum_instances() do
     get_config_value(:default_minimum_instances, @default_minimum_instances)

@@ -1,4 +1,5 @@
 defmodule Ballast.NodePool.Adapters.Mock do
+  @moduledoc false
   @behaviour Ballast.NodePool.Adapters
   @list_json "test/support/node_pool_list.json"
 
@@ -28,5 +29,5 @@ defmodule Ballast.NodePool.Adapters.Mock do
   end
 
   @impl Ballast.NodePool.Adapters
-  def size(_, _), do: {:ok, 3}
+  def size(_, _), do: {:ok, 10}
 end

@@ -1,4 +1,7 @@
 defmodule Ballast.NodePool.Adapters.GKE do
+  @moduledoc """
+  GKE `Ballast.NodePool` implementation.
+  """
   @behaviour Ballast.NodePool.Adapters
 
   @instance_group_manager_pattern ~r{projects/(?<project>[^/]+)/zones/(?<zone>[^/]+)/instanceGroupManagers/(?<name>[^/]+)}

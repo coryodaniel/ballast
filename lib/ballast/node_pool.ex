@@ -64,23 +64,24 @@ defmodule Ballast.NodePool do
   @doc """
   Gets a list of node pools.
 
+  *Note:* Argument 2 is an "unidentified" `NodePool` as it does not contain the pool name. This is used
+  by `list/2` to query the project/location/cluster.
+
   ## Example
-      iex> Ballast.NodePool.list(Ballast.conn(), "my-project", "us-central1-a", "my-cluster")
+      iex> node_pool = Ballast.NodePool.new("my-project", "us-central1-a", "my-cluster")
+      iex> Ballast.NodePool.list(Ballast.conn(), node_pool)
       {:ok, [%Ballast.NodePool{cluster: "my-cluster", data: %{autoscaling: nil, initialNodeCount: 1, instanceGroupUrls: ["https://www.googleapis.com/compute/v1/projects/my-project/zones/us-central1-a/instanceGroupManagers/gke-demo-demo-on-demand"], name: "demo-on-demand", selfLink: "https://container.googleapis.com/v1/projects/my-project/zones/us-central1-a/clusters/demo/nodePools/demo-on-demand", status: "RUNNING"}, location: "us-central1-a", name: "demo-on-demand", project: "my-project"}, %Ballast.NodePool{cluster: "my-cluster", data: %{autoscaling: %{enabled: true, maxNodeCount: 5, minNodeCount: 3}, initialNodeCount: 1, instanceGroupUrls: ["https://www.googleapis.com/compute/v1/projects/my-project/zones/us-central1-a/instanceGroupManagers/gke-demo-demo-preemptible"], name: "demo-preemptible", selfLink: "https://container.googleapis.com/v1/projects/my-project/zones/us-central1-a/clusters/demo/nodePools/demo-preemptible", status: "RUNNING"}, location: "us-central1-a", name: "demo-preemptible", project: "my-project"}]}
   """
-  @spec list(Tesla.Client.t(), String.t(), String.t(), String.t()) ::
-          {:ok, list(NodePool.t())} | {:error, Tesla.Env.t()}
-  def list(conn, project, location, cluster) do
-    pool = new(project, location, cluster)
-
-    case @adapter.list(conn, pool) do
+  @spec list(Tesla.Client.t(), NodePool.t()) :: {:ok, list(NodePool.t())} | {:error, Tesla.Env.t()}
+  def list(conn, query) do
+    case @adapter.list(conn, query) do
       {:error, error} ->
         {:error, error}
 
       {:ok, response} ->
         node_pools =
           Enum.map(response, fn pool ->
-            from_response(project, location, cluster, pool)
+            from_response(query.project, query.location, query.cluster, pool)
           end)
 
         {:ok, node_pools}
@@ -91,20 +92,18 @@ defmodule Ballast.NodePool do
   Gets a node pool.
 
   ## Example
-      iex> Ballast.NodePool.get(Ballast.conn(), "my-project", "us-central1-a", "my-cluster", "my-pool")
+      iex> node_pool = Ballast.NodePool.new("my-project", "us-central1-a", "my-cluster", "my-pool")
+      iex> Ballast.NodePool.get(Ballast.conn(), node_pool)
       {:ok, %Ballast.NodePool{cluster: "my-cluster", location: "us-central1-a", name: "my-pool", project: "my-project", data: %{autoscaling: %{enabled: true, maxNodeCount: 5, minNodeCount: 3}, instanceGroupUrls: ["https://www.googleapis.com/compute/v1/projects/my-project/zones/us-central1-a/instanceGroupManagers/gke-demo-demo-preemptible"], name: "demo-preemptible", selfLink: "https://container.googleapis.com/v1/projects/my-project/zones/us-central1-a/clusters/demo/nodePools/demo-preemptible", status: "RUNNING", initialNodeCount: 1}}}
   """
-  @spec get(Tesla.Client.t(), String.t(), String.t(), String.t(), String.t()) ::
-          {:ok, NodePool.t()} | {:error, Tesla.Env.t()}
-  def get(conn, project, location, cluster, name) do
-    pool = new(project, location, cluster, name)
-
+  @spec get(Tesla.Client.t(), NodePool.t()) :: {:ok, NodePool.t()} | {:error, Tesla.Env.t()}
+  def get(conn, pool) do
     case @adapter.get(conn, pool) do
       {:error, error} ->
         {:error, error}
 
       {:ok, response} ->
-        node_pool = NodePool.new(project, location, cluster, name, response)
+        node_pool = %NodePool{pool | data: response}
         {:ok, node_pool}
     end
   end
@@ -122,7 +121,7 @@ defmodule Ballast.NodePool do
     Returns the size when the pool exists
       iex> pool = %Ballast.NodePool{data: %{"foo" => "bar"}}
       ...> Ballast.NodePool.size(Ballast.conn, pool)
-      {:ok, %Ballast.NodePool{instance_count: 3, data: %{"foo" => "bar"}}}
+      {:ok, %Ballast.NodePool{instance_count: 10, data: %{"foo" => "bar"}}}
   """
   @spec size(Tesla.Client.t(), NodePool.t()) :: {:ok, NodePool.t()} | {:error, Tesla.Env.t()}
   def size(conn, %Ballast.NodePool{} = pool) do

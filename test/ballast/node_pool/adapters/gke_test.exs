@@ -3,6 +3,7 @@ defmodule Ballast.NodePool.Adapters.GKETest do
   alias Ballast.NodePool.Adapters.GKE
   alias Ballast.NodePool
 
+  @moduletag :external
   @integration_config "test/support/integration_config.yaml"
 
   defp config() do

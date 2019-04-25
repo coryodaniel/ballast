@@ -9,7 +9,7 @@ spec:
   poolName: my-source-pool
   targetPools:
   - poolName: my-target-pool
-    minimumInstances: 3
+    minimumInstances: 1
     targetCapacityPercent: 30
     cooldownSeconds: 600
     location: my-target-region-or-zone

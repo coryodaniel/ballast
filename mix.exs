@@ -9,6 +9,12 @@ defmodule Ballast.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env()),
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: [coveralls: :test, "coveralls.travis": :test, "coveralls.html": :test],
+      docs: [
+        extras: ["README.md"],
+        main: "readme"
+      ],
       dialyzer: [
         ignore_warnings: ".dialyzer_ignore.exs",
         list_unused_filters: true
@@ -43,7 +49,10 @@ defmodule Ballast.MixProject do
       {:mix_test_watch, "~> 0.8", only: :dev, runtime: false},
       {:dialyxir, "~> 1.0.0-rc.4", only: :dev, runtime: false},
       {:ex_doc, "~> 0.20", only: :dev},
-      {:credo, "~> 1.0.0", only: [:dev, :test], runtime: false}
+      {:credo, "~> 1.0.0", only: [:dev, :test], runtime: false},
+
+      # Test Deps
+      {:excoveralls, "~> 0.10", only: :test},
     ]
   end
 end
