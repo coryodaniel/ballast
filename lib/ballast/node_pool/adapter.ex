@@ -3,7 +3,6 @@ defmodule Ballast.NodePool.Adapters do
   `NodePool` adapter for getting node pool metadata.
   """
 
-  @callback get(Tesla.Client.t(), Ballast.NodePool.t()) :: {:ok, map} | {:error, Tesla.Env.t()}
-  @callback list(Tesla.Client.t(), Ballast.NodePool.t()) :: {:ok, list(map)} | {:error, Tesla.Env.t()}
-  @callback size(Tesla.Client.t(), Ballast.NodePool.t()) :: {:ok, integer} | {:error, Tesla.Env.t()} | {:error, atom}
+  @callback get(Ballast.NodePool.t(), Tesla.Client.t()) :: {:ok, map} | {:error, Tesla.Env.t()}
+  @callback size(Ballast.NodePool.t(), Tesla.Client.t()) :: {:ok, integer} | {:error, Tesla.Env.t()} | {:error, atom}
 end

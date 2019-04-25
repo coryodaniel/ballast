@@ -52,7 +52,7 @@ defmodule Ballast.MixProject do
       {:credo, "~> 1.0.0", only: [:dev, :test], runtime: false},
 
       # Test Deps
-      {:excoveralls, "~> 0.10", only: :test},
+      {:excoveralls, "~> 0.10", only: :test}
     ]
   end
 end

@@ -65,7 +65,6 @@ defmodule Ballast.Controller.V1.ReservePoolPolicy do
   defp do_apply(payload) do
     policy = PoolPolicy.from_resource(payload)
 
-
     #  |> PoolPolicy.changesets()
 
     Logger.info("FOO: #{inspect(policy)}")

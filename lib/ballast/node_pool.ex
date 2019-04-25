@@ -69,9 +69,9 @@ defmodule Ballast.NodePool do
       ...> Ballast.NodePool.get(node_pool, Ballast.conn())
       {:ok, %Ballast.NodePool{cluster: "my-cluster", location: "us-central1-a", name: "my-pool", project: "my-project", data: %{autoscaling: %{enabled: true, maxNodeCount: 5, minNodeCount: 3}, instanceGroupUrls: ["https://www.googleapis.com/compute/v1/projects/my-project/zones/us-central1-a/instanceGroupManagers/gke-demo-demo-preemptible"], name: "demo-preemptible", selfLink: "https://container.googleapis.com/v1/projects/my-project/zones/us-central1-a/clusters/demo/nodePools/demo-preemptible", status: "RUNNING", initialNodeCount: 1}}}
   """
-  @spec get(Tesla.Client.t(), NodePool.t()) :: {:ok, NodePool.t()} | {:error, Tesla.Env.t()}
-  def get(conn, pool) do
-    case @adapter.get(conn, pool) do
+  @spec get(NodePool.t(), Tesla.Client.t()) :: {:ok, NodePool.t()} | {:error, Tesla.Env.t()}
+  def get(pool, conn) do
+    case @adapter.get(pool, conn) do
       {:error, error} ->
         {:error, error}
 
@@ -87,12 +87,12 @@ defmodule Ballast.NodePool do
   ## Examples
     Returns the size when the pool exists
       iex> pool = %Ballast.NodePool{data: %{"foo" => "bar"}}
-      ...> Ballast.NodePool.size(Ballast.conn, pool)
+      ...> Ballast.NodePool.size(pool, Ballast.conn())
       {:ok, %Ballast.NodePool{instance_count: 10, data: %{"foo" => "bar"}}}
   """
-  @spec size(Tesla.Client.t(), NodePool.t()) :: {:ok, NodePool.t()} | {:error, Tesla.Env.t()}
-  def size(conn, %Ballast.NodePool{} = pool) do
-    case @adapter.size(conn, pool) do
+  @spec size(NodePool.t(), Tesla.Client.t()) :: {:ok, NodePool.t()} | {:error, Tesla.Env.t()}
+  def size(%Ballast.NodePool{} = pool, conn) do
+    case @adapter.size(pool, conn) do
       {:error, error} ->
         {:error, error}
 
@@ -100,6 +100,4 @@ defmodule Ballast.NodePool do
         {:ok, %NodePool{pool | instance_count: count}}
     end
   end
-
-
 end

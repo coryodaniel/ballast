@@ -10,24 +10,13 @@ defmodule Ballast.NodePool.Adapters.GKE do
   alias GoogleApi.Compute.V1.Api.InstanceGroups
 
   @impl Ballast.NodePool.Adapters
-  def list(conn, %Ballast.NodePool{project: p, location: l, cluster: c}) do
-    parent = "projects/#{p}/locations/#{l}/clusters/#{c}"
-    response = Container.container_projects_locations_clusters_node_pools_list(conn, parent)
-
-    case response do
-      {:ok, %{nodePools: pools}} -> {:ok, pools}
-      error -> error
-    end
-  end
-
-  @impl Ballast.NodePool.Adapters
-  def get(conn, %Ballast.NodePool{} = pool) do
+  def get(%Ballast.NodePool{} = pool, conn) do
     %Ballast.NodePool{project: project, location: zone, cluster: cluster, name: name} = pool
     Container.container_projects_zones_clusters_node_pools_get(conn, project, zone, cluster, name)
   end
 
   @impl Ballast.NodePool.Adapters
-  def size(conn, %Ballast.NodePool{data: %{instanceGroupUrls: urls}}) do
+  def size(%Ballast.NodePool{data: %{instanceGroupUrls: urls}}, conn) do
     url = List.first(urls)
 
     with {:ok, project, zone, name} <- parse_instance_group_manager_params(url),

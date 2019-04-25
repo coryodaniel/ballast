@@ -49,7 +49,7 @@ defmodule Ballast.PoolPolicy do
   @spec changesets(PoolPolicy.t()) :: PoolPolicy.t()
   def changesets(%PoolPolicy{targets: targets} = policy) do
     {:ok, conn} = Ballast.conn()
-    {:ok, node_pool} = NodePool.size(conn, policy.pool)
+    {:ok, node_pool} = NodePool.size(policy.pool, conn)
 
     changesets = make_changesets(targets, node_pool.instance_count)
     %PoolPolicy{policy | changesets: changesets}

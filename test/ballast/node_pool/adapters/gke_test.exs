@@ -19,26 +19,13 @@ defmodule Ballast.NodePool.Adapters.GKETest do
     {project, location, cluster, pool}
   end
 
-  describe "list/2" do
-    test "returns a list of node pools" do
-      {:ok, conn} = Ballast.conn()
-      {project, location, cluster, _} = config()
-      node_pool = NodePool.new(project, location, cluster)
-
-      {:ok, response} = GKE.list(conn, node_pool)
-      pool = List.first(response)
-
-      assert match?(%{autoscaling: _, instanceGroupUrls: _, name: _}, pool)
-    end
-  end
-
   describe "get/2" do
     test "returns a node pool" do
       {:ok, conn} = Ballast.conn()
       {project, location, cluster, pool} = config()
       node_pool = NodePool.new(project, location, cluster, pool)
 
-      {:ok, response} = GKE.get(conn, node_pool)
+      {:ok, response} = GKE.get(node_pool, conn)
 
       assert match?(%{autoscaling: _, instanceGroupUrls: _, name: _}, response)
     end
@@ -49,10 +36,10 @@ defmodule Ballast.NodePool.Adapters.GKETest do
       {:ok, conn} = Ballast.conn()
       {project, location, cluster, pool} = config()
       node_pool = NodePool.new(project, location, cluster, pool)
-      {:ok, response} = GKE.get(conn, node_pool)
+      {:ok, response} = GKE.get(node_pool, conn)
 
       node_pool = %NodePool{data: response}
-      {:ok, size} = GKE.size(conn, node_pool)
+      {:ok, size} = GKE.size(node_pool, conn)
 
       assert is_integer(size)
     end
