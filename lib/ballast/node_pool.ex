@@ -4,7 +4,7 @@ defmodule Ballast.NodePool do
   """
 
   @adapter Application.get_env(:ballast, :node_pool_adapter, Ballast.NodePool.Adapters.GKE)
-  alias Ballast.NodePool
+  alias Ballast.{NodePool}
 
   defstruct [:cluster, :instance_count, :project, :location, :name, :data]
 
@@ -26,7 +26,7 @@ defmodule Ballast.NodePool do
       ...> Ballast.NodePool.new(resource)
       %Ballast.NodePool{cluster: "foo", project: "bar", location: "baz", name: "qux", data: %{}}
   """
-  @spec new(map) :: NodePool.t()
+  @spec new(map) :: t
   def new(%{"spec" => spec}), do: NodePool.new(spec)
 
   def new(%{"projectId" => p, "location" => l, "clusterName" => c, "poolName" => n}), do: new(p, l, c, n)
@@ -41,7 +41,7 @@ defmodule Ballast.NodePool do
     %Ballast.NodePool{cluster: "cluster", project: "project", location: "location", name: nil, data: nil}
 
   """
-  @spec new(String.t(), String.t(), String.t()) :: NodePool.t()
+  @spec new(String.t(), String.t(), String.t()) :: t
   def new(project, location, cluster),
     do: %NodePool{cluster: cluster, project: project, location: location}
 
@@ -57,7 +57,7 @@ defmodule Ballast.NodePool do
       iex> Ballast.NodePool.new("project", "location", "cluster", "name", %{"foo" => "bar"})
       %Ballast.NodePool{cluster: "cluster", project: "project", location: "location", name: "name", data: %{"foo" => "bar"}}
   """
-  @spec new(String.t(), String.t(), String.t(), String.t(), map | nil) :: Ballast.NodePool.t()
+  @spec new(String.t(), String.t(), String.t(), String.t(), map | nil) :: t
   def new(project, location, cluster, name, data \\ %{}),
     do: %NodePool{cluster: cluster, project: project, location: location, name: name, data: data}
 
@@ -66,18 +66,19 @@ defmodule Ballast.NodePool do
 
   ## Example
       iex> node_pool = Ballast.NodePool.new("my-project", "us-central1-a", "my-cluster", "my-pool")
-      ...> Ballast.NodePool.get(node_pool, Ballast.conn())
+      ...> {:ok, conn} = Ballast.conn()
+      ...> Ballast.NodePool.get(node_pool, conn)
       {:ok, %Ballast.NodePool{cluster: "my-cluster", location: "us-central1-a", name: "my-pool", project: "my-project", data: %{autoscaling: %{enabled: true, maxNodeCount: 5, minNodeCount: 3}, instanceGroupUrls: ["https://www.googleapis.com/compute/v1/projects/my-project/zones/us-central1-a/instanceGroupManagers/gke-demo-demo-preemptible"], name: "demo-preemptible", selfLink: "https://container.googleapis.com/v1/projects/my-project/zones/us-central1-a/clusters/demo/nodePools/demo-preemptible", status: "RUNNING", initialNodeCount: 1}}}
   """
-  @spec get(NodePool.t(), Tesla.Client.t()) :: {:ok, NodePool.t()} | {:error, Tesla.Env.t()}
+  @spec get(t, Tesla.Client.t()) :: {:ok, t} | {:error, Tesla.Env.t()}
   def get(pool, conn) do
     case @adapter.get(pool, conn) do
-      {:error, error} ->
-        {:error, error}
-
       {:ok, response} ->
         node_pool = %NodePool{pool | data: response}
         {:ok, node_pool}
+
+      error ->
+        error
     end
   end
 
@@ -87,17 +88,18 @@ defmodule Ballast.NodePool do
   ## Examples
     Returns the size when the pool exists
       iex> pool = %Ballast.NodePool{data: %{"foo" => "bar"}}
-      ...> Ballast.NodePool.size(pool, Ballast.conn())
+      ...> {:ok, conn} = Ballast.conn()
+      ...> Ballast.NodePool.size(pool, conn)
       {:ok, %Ballast.NodePool{instance_count: 10, data: %{"foo" => "bar"}}}
   """
-  @spec size(NodePool.t(), Tesla.Client.t()) :: {:ok, NodePool.t()} | {:error, Tesla.Env.t()}
+  @spec size(t, Tesla.Client.t()) :: {:ok, t} | {:error, Tesla.Env.t()}
   def size(%Ballast.NodePool{} = pool, conn) do
     case @adapter.size(pool, conn) do
-      {:error, error} ->
-        {:error, error}
-
       {:ok, count} ->
         {:ok, %NodePool{pool | instance_count: count}}
+
+      error ->
+        error
     end
   end
 end

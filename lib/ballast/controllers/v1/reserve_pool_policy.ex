@@ -5,7 +5,7 @@ defmodule Ballast.Controller.V1.ReservePoolPolicy do
 
   use Bonny.Controller
   require Logger
-  alias Ballast.PoolPolicy
+  alias Ballast.{PoolPolicy}
 
   @scope :cluster
   @names %{
@@ -63,11 +63,15 @@ defmodule Ballast.Controller.V1.ReservePoolPolicy do
 
   @spec do_apply(map) :: :ok | :error
   defp do_apply(payload) do
-    policy = PoolPolicy.from_resource(payload)
-
-    #  |> PoolPolicy.changesets()
-
-    Logger.info("FOO: #{inspect(policy)}")
-    :ok
+    with {:ok, policy} <- PoolPolicy.from_resource(payload),
+         {:ok, policy} <- PoolPolicy.changesets(policy) do
+      # TODO: apply
+      Logger.debug("Applying: #{inspect(policy)}")
+      :ok
+    else
+      error ->
+        Ballast.Logger.error(error)
+        :error
+    end
   end
 end

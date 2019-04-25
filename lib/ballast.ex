@@ -13,15 +13,20 @@ defmodule Ballast do
   @default_target_capacity_percent 50
   @default_minimum_instances 1
 
-  @spec token() :: {:ok, Goth.Token.t()}
+  @spec token() :: {:ok, Goth.Token.t()} | {:error, any()}
   def token() do
     Goth.Token.for_scope(@scopes)
   end
 
   @spec conn() :: {:ok, Tesla.Client.t()} | {:error, any()}
   def conn() do
-    {:ok, tkn} = token()
-    {:ok, GoogleApi.Container.V1.Connection.new(tkn.token)}
+    case token() do
+      {:ok, tkn} ->
+        {:ok, GoogleApi.Container.V1.Connection.new(tkn.token)}
+
+      error ->
+        error
+    end
   end
 
   @doc """

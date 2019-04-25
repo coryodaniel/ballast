@@ -1,5 +1,6 @@
 defmodule Ballast.NodePool.Adapters.Mock do
   @moduledoc false
+
   @behaviour Ballast.NodePool.Adapters
   @list_json "test/support/node_pool_list.json"
 

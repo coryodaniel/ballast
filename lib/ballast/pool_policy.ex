@@ -28,15 +28,16 @@ defmodule Ballast.PoolPolicy do
   @doc """
   Converts a `Ballast.Controller.V1.ReservePoolPolicy` resource to a `Ballast.PoolPolicy`
   """
-  @spec from_resource(map) :: PoolPolicy.t()
+  @spec from_resource(map) :: {:ok, t} | {:error, any()}
   def from_resource(resource) do
-    pool =
-      resource
-      |> NodePool.new()
-
-    targets = make_targets(resource)
-
-    %PoolPolicy{pool: pool, targets: targets}
+    with pool <- NodePool.new(resource),
+         {:ok, conn} <- Ballast.conn(),
+         {:ok, pool} <- NodePool.get(pool, conn) do
+      targets = make_targets(resource)
+      {:ok, %PoolPolicy{pool: pool, targets: targets}}
+    else
+      error -> error
+    end
   end
 
   @doc """
@@ -46,13 +47,15 @@ defmodule Ballast.PoolPolicy do
 
   Idea being that in a continually changing system it'll be faster to perform a no-op update than to check if an update is needed and perform if so.
   """
-  @spec changesets(PoolPolicy.t()) :: PoolPolicy.t()
+  @spec changesets(t) :: {:ok, t} | {:error, any()}
   def changesets(%PoolPolicy{targets: targets} = policy) do
-    {:ok, conn} = Ballast.conn()
-    {:ok, node_pool} = NodePool.size(policy.pool, conn)
-
-    changesets = make_changesets(targets, node_pool.instance_count)
-    %PoolPolicy{policy | changesets: changesets}
+    with {:ok, conn} <- Ballast.conn(),
+         {:ok, node_pool} = NodePool.size(policy.pool, conn) do
+      changesets = make_changesets(targets, node_pool.instance_count)
+      {:ok, %PoolPolicy{policy | changesets: changesets}}
+    else
+      error -> error
+    end
   end
 
   @spec make_changesets(list(target_t), pos_integer) :: list(changeset_t)
