@@ -62,38 +62,11 @@ defmodule Ballast.NodePool do
     do: %NodePool{cluster: cluster, project: project, location: location, name: name, data: data}
 
   @doc """
-  Gets a list of node pools.
-
-  *Note:* Argument 2 is an "unidentified" `NodePool` as it does not contain the pool name. This is used
-  by `list/2` to query the project/location/cluster.
-
-  ## Example
-      iex> node_pool = Ballast.NodePool.new("my-project", "us-central1-a", "my-cluster")
-      iex> Ballast.NodePool.list(Ballast.conn(), node_pool)
-      {:ok, [%Ballast.NodePool{cluster: "my-cluster", data: %{autoscaling: nil, initialNodeCount: 1, instanceGroupUrls: ["https://www.googleapis.com/compute/v1/projects/my-project/zones/us-central1-a/instanceGroupManagers/gke-demo-demo-on-demand"], name: "demo-on-demand", selfLink: "https://container.googleapis.com/v1/projects/my-project/zones/us-central1-a/clusters/demo/nodePools/demo-on-demand", status: "RUNNING"}, location: "us-central1-a", name: "demo-on-demand", project: "my-project"}, %Ballast.NodePool{cluster: "my-cluster", data: %{autoscaling: %{enabled: true, maxNodeCount: 5, minNodeCount: 3}, initialNodeCount: 1, instanceGroupUrls: ["https://www.googleapis.com/compute/v1/projects/my-project/zones/us-central1-a/instanceGroupManagers/gke-demo-demo-preemptible"], name: "demo-preemptible", selfLink: "https://container.googleapis.com/v1/projects/my-project/zones/us-central1-a/clusters/demo/nodePools/demo-preemptible", status: "RUNNING"}, location: "us-central1-a", name: "demo-preemptible", project: "my-project"}]}
-  """
-  @spec list(Tesla.Client.t(), NodePool.t()) :: {:ok, list(NodePool.t())} | {:error, Tesla.Env.t()}
-  def list(conn, query) do
-    case @adapter.list(conn, query) do
-      {:error, error} ->
-        {:error, error}
-
-      {:ok, response} ->
-        node_pools =
-          Enum.map(response, fn pool ->
-            from_response(query.project, query.location, query.cluster, pool)
-          end)
-
-        {:ok, node_pools}
-    end
-  end
-
-  @doc """
   Gets a node pool.
 
   ## Example
       iex> node_pool = Ballast.NodePool.new("my-project", "us-central1-a", "my-cluster", "my-pool")
-      iex> Ballast.NodePool.get(Ballast.conn(), node_pool)
+      ...> Ballast.NodePool.get(node_pool, Ballast.conn())
       {:ok, %Ballast.NodePool{cluster: "my-cluster", location: "us-central1-a", name: "my-pool", project: "my-project", data: %{autoscaling: %{enabled: true, maxNodeCount: 5, minNodeCount: 3}, instanceGroupUrls: ["https://www.googleapis.com/compute/v1/projects/my-project/zones/us-central1-a/instanceGroupManagers/gke-demo-demo-preemptible"], name: "demo-preemptible", selfLink: "https://container.googleapis.com/v1/projects/my-project/zones/us-central1-a/clusters/demo/nodePools/demo-preemptible", status: "RUNNING", initialNodeCount: 1}}}
   """
   @spec get(Tesla.Client.t(), NodePool.t()) :: {:ok, NodePool.t()} | {:error, Tesla.Env.t()}
@@ -106,12 +79,6 @@ defmodule Ballast.NodePool do
         node_pool = %NodePool{pool | data: response}
         {:ok, node_pool}
     end
-  end
-
-  @doc false
-  @spec from_response(String.t(), String.t(), String.t(), map()) :: NodePool.t()
-  def from_response(project, location, cluster, %{name: name} = response) do
-    NodePool.new(project, location, cluster, name, response)
   end
 
   @doc """
@@ -133,4 +100,6 @@ defmodule Ballast.NodePool do
         {:ok, %NodePool{pool | instance_count: count}}
     end
   end
+
+
 end
