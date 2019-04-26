@@ -1,9 +1,10 @@
 defmodule Ballast.PoolPolicy do
   @moduledoc """
-  Internal representation of `Ballast.Controller.V1.ReservePoolPolicy` custom resource.
+  Internal representation of `Ballast.Controller.V1.PoolPolicy` custom resource.
   """
 
   alias Ballast.{NodePool, PoolPolicy}
+  require Logger
 
   @type changeset_t :: %{
           pool: Ballast.NodePool.t(),
@@ -26,15 +27,19 @@ defmodule Ballast.PoolPolicy do
   defstruct pool: nil, targets: [], changesets: []
 
   @doc """
-  Converts a `Ballast.Controller.V1.ReservePoolPolicy` resource to a `Ballast.PoolPolicy`
+  Converts a `Ballast.Controller.V1.PoolPolicy` resource to a `Ballast.PoolPolicy` and populates target `NodePool`s data.
   """
-  @spec from_resource(map) :: {:ok, t} | {:error, any()}
+  @spec from_resource(map) :: t
   def from_resource(resource) do
-    with pool <- NodePool.new(resource),
-         {:ok, conn} <- Ballast.conn(),
-         {:ok, pool} <- NodePool.get(pool, conn) do
-      targets = make_targets(resource)
-      {:ok, %PoolPolicy{pool: pool, targets: targets}}
+    pool = NodePool.new(resource)
+    targets = make_targets(resource)
+    %PoolPolicy{pool: pool, targets: targets}
+  end
+
+  @spec get_pool_details(Ballast.NodePool.t()) :: {:ok, Ballast.NodePool.t()} | {:error, any}
+  def get_pool_details(pool) do
+    with {:ok, conn} <- Ballast.conn(), {:ok, pool} <- NodePool.get(pool, conn) do
+      {:ok, pool}
     else
       error -> error
     end
@@ -50,8 +55,8 @@ defmodule Ballast.PoolPolicy do
   @spec changesets(t) :: {:ok, t} | {:error, any()}
   def changesets(%PoolPolicy{targets: targets} = policy) do
     with {:ok, conn} <- Ballast.conn(),
-         {:ok, node_pool} = NodePool.size(policy.pool, conn) do
-      changesets = make_changesets(targets, node_pool.instance_count)
+         {:ok, pool} = NodePool.size(policy.pool, conn) do
+      changesets = make_changesets(targets, pool.instance_count)
       {:ok, %PoolPolicy{policy | changesets: changesets}}
     else
       error -> error
@@ -70,7 +75,9 @@ defmodule Ballast.PoolPolicy do
   defp make_targets(%{"spec" => %{"targetPools" => targets}} = resource) do
     {project, cluster} = get_project_and_cluster(resource)
 
-    Enum.map(targets, fn target -> make_target(target, project, cluster) end)
+    targets
+    |> Enum.map(fn target -> make_target(target, project, cluster) end)
+    |> Enum.reject(&is_nil/1)
   end
 
   @spec make_target(map(), binary(), binary()) :: target_t
@@ -82,11 +89,20 @@ defmodule Ballast.PoolPolicy do
       "location" => location
     } = target
 
-    %{
-      pool: NodePool.new(project, location, cluster, name),
-      target_capacity_percent: cast_target_capacity_percent(tp),
-      minimum_instances: cast_minimum_instances(mi)
-    }
+    pool = NodePool.new(project, location, cluster, name)
+
+    case get_pool_details(pool) do
+      {:ok, pool} ->
+        %{
+          pool: pool,
+          target_capacity_percent: cast_target_capacity_percent(tp),
+          minimum_instances: cast_minimum_instances(mi)
+        }
+
+      _ ->
+        Logger.warn("Skipping misconfigured target #{NodePool.id(pool)}")
+        nil
+    end
   end
 
   @spec get_project_and_cluster(map) :: {String.t(), String.t()}

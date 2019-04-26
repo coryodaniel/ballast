@@ -35,7 +35,7 @@ defmodule Ballast.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:bonny, "0.3.2"},
+      {:bonny, "~> 0.3"},
       {:jason, "~> 1.1"},
 
       # GoogleApi requires Poison 3, but doesnt include it in its deps :(

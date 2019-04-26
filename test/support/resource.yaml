@@ -1,5 +1,5 @@
 apiVersion: ballast.example.com/v1
-kind: "ReservePoolPolicy"
+kind: "PoolPolicy"
 metadata:
   name: example-policy
 spec:

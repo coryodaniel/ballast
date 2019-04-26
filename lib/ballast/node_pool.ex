@@ -4,6 +4,8 @@ defmodule Ballast.NodePool do
   """
 
   @adapter Application.get_env(:ballast, :node_pool_adapter, Ballast.NodePool.Adapters.GKE)
+
+  require Logger
   alias Ballast.{NodePool}
 
   defstruct [:cluster, :instance_count, :project, :location, :name, :data]
@@ -14,7 +16,7 @@ defmodule Ballast.NodePool do
           project: String.t(),
           location: String.t(),
           instance_count: integer | nil,
-          name: String.t() | nil,
+          name: String.t(),
           data: map | nil
         }
 
@@ -34,18 +36,6 @@ defmodule Ballast.NodePool do
   def new(_invalid), do: %__MODULE__{}
 
   @doc """
-  Creates an unnamed `Ballast.NodePool` struct. Useful in `list` requests
-
-  ## Example
-    iex> Ballast.NodePool.new("project", "location", "cluster")
-    %Ballast.NodePool{cluster: "cluster", project: "project", location: "location", name: nil, data: nil}
-
-  """
-  @spec new(String.t(), String.t(), String.t()) :: t
-  def new(project, location, cluster),
-    do: %NodePool{cluster: cluster, project: project, location: location}
-
-  @doc """
   Creates a `Ballast.NodePool` struct with or without metadata. Used for `get` queries and responses.
 
   ## Example
@@ -60,6 +50,20 @@ defmodule Ballast.NodePool do
   @spec new(String.t(), String.t(), String.t(), String.t(), map | nil) :: t
   def new(project, location, cluster, name, data \\ %{}),
     do: %NodePool{cluster: cluster, project: project, location: location, name: name, data: data}
+
+  @doc """
+  Generates a NodePool identifier
+
+  ## Example
+    NodePool without response data
+      iex> pool = Ballast.NodePool.new("foo", "bar", "baz", "qux")
+      ...> Ballast.NodePool.id(pool)
+      "projects/foo/locations/bar/clusters/baz/nodePools/qux"
+  """
+  @spec id(Ballast.NodePool.t()) :: String.t()
+  def id(%NodePool{} = pool) do
+    "projects/#{pool.project}/locations/#{pool.location}/clusters/#{pool.cluster}/nodePools/#{pool.name}"
+  end
 
   @doc """
   Gets a node pool.
@@ -77,8 +81,10 @@ defmodule Ballast.NodePool do
         node_pool = %NodePool{pool | data: response}
         {:ok, node_pool}
 
-      error ->
-        error
+      {:error, %Tesla.Env{} = env} ->
+        id = NodePool.id(pool)
+        Logger.error("Error getting pool (#{env.status}): #{id}")
+        {:error, env}
     end
   end
 
@@ -98,8 +104,10 @@ defmodule Ballast.NodePool do
       {:ok, count} ->
         {:ok, %NodePool{pool | instance_count: count}}
 
-      error ->
-        error
+      {:error, %Tesla.Env{} = env} ->
+        id = NodePool.id(pool)
+        Logger.error("Error getting current size (#{env.status}): #{id}")
+        {:error, env}
     end
   end
 end

@@ -1,6 +1,6 @@
-defmodule Ballast.Controller.V1.ReservePoolPolicy do
+defmodule Ballast.Controller.V1.PoolPolicy do
   @moduledoc """
-  Ballast: ReservePoolPolicy CRD.
+  Ballast: PoolPolicy CRD.
   """
 
   use Bonny.Controller
@@ -9,10 +9,10 @@ defmodule Ballast.Controller.V1.ReservePoolPolicy do
 
   @scope :cluster
   @names %{
-    plural: "reservepoolpolicies",
-    singular: "reservepoolpolicy",
-    kind: "ReservePoolPolicy",
-    shortNames: ["rpp"]
+    plural: "poolpolicies",
+    singular: "poolpolicy",
+    kind: "PoolPolicy",
+    shortNames: ["pp"]
   }
 
   @rule {"", ["nodes"], ["list"]}
@@ -63,15 +63,9 @@ defmodule Ballast.Controller.V1.ReservePoolPolicy do
 
   @spec do_apply(map) :: :ok | :error
   defp do_apply(payload) do
-    with {:ok, policy} <- PoolPolicy.from_resource(payload),
-         {:ok, policy} <- PoolPolicy.changesets(policy) do
-      # TODO: apply
-      Logger.debug("Applying: #{inspect(policy)}")
-      :ok
-    else
-      error ->
-        Ballast.Logger.error(error)
-        :error
-    end
+    policy = PoolPolicy.from_resource(payload)
+    Logger.debug("Would apply: #{inspect(policy)}")
+
+    :ok
   end
 end
