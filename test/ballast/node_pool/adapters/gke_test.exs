@@ -19,6 +19,46 @@ defmodule Ballast.NodePool.Adapters.GKETest do
     {project, location, cluster, pool}
   end
 
+  describe "autoscaling_enabled?/1" do
+    test "returns false when disabled" do
+      pool = %NodePool{
+        data: %{
+          autoscaling: %{enabled: false}
+        }
+      }
+
+      refute GKE.autoscaling_enabled?(pool)
+    end
+
+    test "returns true when enabled" do
+      pool = %NodePool{
+        data: %{
+          autoscaling: %{enabled: true}
+        }
+      }
+
+      assert GKE.autoscaling_enabled?(pool)
+    end
+  end
+
+  describe "scale/1" do
+    test "when autoscaling is disabled" do
+      assert false
+      # iex> node_pool = Ballast.NodePool.new("my-proj", "my-loc", "my-cluster", "my-pool")
+      # ...> target = %Ballast.PoolPolicy.Target{pool: node_pool, target_capacity_percent: 30, minimum_instances: 1, autoscaling_enabled: false}
+      # ...> source_instance_count = 10
+      # ...> changeset = Ballast.PoolPolicy.Changeset.new(target, source_instance_count)
+      # ...> Ballast.NodePool.scale(changeset)
+      #   # Adapter.setSize, setAutoscaling
+      #   IO.puts(changeset.minimum_count)
+      #   IO.puts("#{inspect(changeset.pool)}")
+    end
+
+    test "when autoscaling is enabled" do
+      assert false
+    end
+  end
+
   describe "get/2" do
     test "returns a node pool" do
       {:ok, conn} = Ballast.conn()

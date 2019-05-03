@@ -54,6 +54,8 @@ defmodule Ballast.NodePool do
   @doc """
   Generates a NodePool identifier
 
+  TODO: Implement as adapter behavior
+
   ## Example
     NodePool without response data
       iex> pool = Ballast.NodePool.new("foo", "bar", "baz", "qux")
@@ -81,12 +83,24 @@ defmodule Ballast.NodePool do
         node_pool = %NodePool{pool | data: response}
         {:ok, node_pool}
 
-      {:error, %Tesla.Env{} = env} ->
-        id = NodePool.id(pool)
-        Logger.error("Error getting pool (#{env.status}): #{id}")
-        {:error, env}
+      error ->
+        error
     end
   end
+
+  @doc """
+  Scales a `NodePool`
+
+  ## Examples
+      iex> node_pool = Ballast.NodePool.new("my-proj", "my-loc", "my-cluster", "my-pool")
+      ...> target = %Ballast.PoolPolicy.Target{pool: node_pool, target_capacity_percent: 30, minimum_instances: 1, autoscaling_enabled: false}
+      ...> source_instance_count = 10
+      ...> changeset = Ballast.PoolPolicy.Changeset.new(target, source_instance_count)
+      ...> Ballast.NodePool.scale(changeset, Ballast.conn())
+      :ok
+  """
+  @spec scale(Ballast.PoolPolicy.Changeset.t, Tesla.Client.t()) :: :ok | {:error, Tesla.Env.t()}
+  def scale(changeset, conn), do: @adapter.scale(changeset, conn)
 
   @doc """
   Returns the size of a pool by checking `size` from the pool's `InstanceGroupManager`
@@ -104,10 +118,11 @@ defmodule Ballast.NodePool do
       {:ok, count} ->
         {:ok, %NodePool{pool | instance_count: count}}
 
-      {:error, %Tesla.Env{} = env} ->
-        id = NodePool.id(pool)
-        Logger.error("Error getting current size (#{env.status}): #{id}")
-        {:error, env}
+      error ->
+        error
     end
   end
+
+  @spec autoscaling_enabled?(Ballast.NodePool.t()) :: boolean()
+  def autoscaling_enabled?(pool), do: @adapter.autoscaling_enabled?(pool)
 end

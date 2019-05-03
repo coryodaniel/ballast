@@ -5,12 +5,13 @@ defmodule Ballast.MixProject do
     [
       app: :ballast,
       version: "0.1.0",
-      elixir: "~> 1.7",
+      elixir: "~> 1.8",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env()),
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [coveralls: :test, "coveralls.travis": :test, "coveralls.html": :test],
+      aliases: aliases(),
       docs: [
         extras: ["README.md"],
         main: "readme"
@@ -27,6 +28,10 @@ defmodule Ballast.MixProject do
     [
       extra_applications: [:logger]
     ]
+  end
+
+  defp aliases do
+    [lint: ["format", "credo", "dialyzer"]]
   end
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]

@@ -27,6 +27,52 @@ defmodule Ballast.NodePool.Adapters.GKE do
     end
   end
 
+  @impl Ballast.NodePool.Adapters
+  def scale(%Ballast.PoolPolicy.Changeset{} = changeset, conn) do
+    case autoscaling_enabled?(changeset.pool) do
+      true -> set_autoscaling(changeset.pool, changeset.minimum_count, conn)
+      false -> set_size(changeset.pool, changeset.minimum_count, conn)
+    end
+  end
+
+
+  defp set_autoscaling(pool, minimum_count, conn) do
+    id = Ballast.NodePool.id(pool)
+    old_autoscaling = pool.data.autoscaling
+    new_autoscaling = Map.put(old_autoscaling, :minNodeCount, minimum_count)
+
+    # conn needs to be passed in like the other functions @@
+    # conn, name, [body: ]
+    # body =  %GoogleApi.Container.V1.Model.SetNodePoolAutoscalingRequest{
+    #   autoscaling: %GoogleApi.Container.V1.Model.NodePoolAutoscaling{
+    #     enabled: any(),
+    #     maxNodeCount: any(),
+    #     minNodeCount: any()
+    #   },
+    #   #name: any()
+    # }
+
+    body = %{autoscaling: new_autoscaling}
+    opts = [body: body]
+    resp = Container.container_projects_locations_clusters_node_pools_set_autoscaling(conn, id, opts)
+    IO.puts "Resp: #{inspect(resp)}"
+
+    IO.puts "Would autoscaling"
+    :ok
+  end
+
+  defp set_size(pool, minimum_count, conn) do
+    # conn, name, [body: ]
+    # body = %GoogleApi.Container.V1.Model.SetNodePoolSizeRequest{
+    #   name: any(),
+    #   nodeCount: any(),
+    # }
+
+    # Container.container_projects_locations_clusters_node_pools_set_size/N
+    IO.puts "Would size"
+    :ok
+  end
+
   @doc """
   Parses a Google API `instanceGroupUrl` into arguments for `GoogleApi.Compute.V1.Api.InstanceGroups`.
 
@@ -45,6 +91,10 @@ defmodule Ballast.NodePool.Adapters.GKE do
     |> Regex.named_captures(url)
     |> validate_instance_group_manager_params
   end
+
+  @impl Ballast.NodePool.Adapters
+  def autoscaling_enabled?(%Ballast.NodePool{data: %{autoscaling: %{enabled: true}}}), do: true
+  def autoscaling_enabled?(_), do: false
 
   defp validate_instance_group_manager_params(%{"project" => p, "zone" => z, "name" => n}), do: {:ok, p, z, n}
   defp validate_instance_group_manager_params(_), do: {:error, :invalid_instance_group_url}

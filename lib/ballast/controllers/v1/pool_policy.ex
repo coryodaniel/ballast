@@ -63,9 +63,15 @@ defmodule Ballast.Controller.V1.PoolPolicy do
 
   @spec do_apply(map) :: :ok | :error
   defp do_apply(payload) do
-    policy = PoolPolicy.from_resource(payload)
-    Logger.debug("Would apply: #{inspect(policy)}")
+    with {:ok, policy} <- PoolPolicy.from_resource(payload),
+         {:ok, policy} <- PoolPolicy.changesets(policy),
+         :ok <- PoolPolicy.apply(policy) do
 
-    :ok
+      # TODO: backoff
+      :ok
+    else
+      error ->
+        :error
+    end
   end
 end
