@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   labels:
     k8s-app: ballast
-  name: poolpolicies.ballast.example.com
+  name: poolpolicies.ballast.bonny.run
 spec:
-  group: ballast.example.com
+  group: ballast.bonny.run
   names:
     kind: PoolPolicy
     plural: poolpolicies
@@ -30,7 +30,7 @@ rules:
   verbs:
   - "*"
 - apiGroups:
-  - ballast.example.com
+  - ballast.bonny.run
   resources:
   - poolpolicies
   verbs:

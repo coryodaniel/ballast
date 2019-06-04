@@ -53,7 +53,7 @@ resource "google_container_node_pool" "preemptible_nodes" {
 }
 
 resource "google_container_node_pool" "on_demand_nodes_autoscaling" {
-  name     = "${var.gke_cluster_name}-on-demand-autoscaling"
+  name     = "${var.gke_cluster_name}-autoscaling-pool"
   location = "${local.location}"
   cluster  = "${google_container_cluster.main.name}"
   initial_node_count = 1
@@ -79,7 +79,7 @@ resource "google_container_node_pool" "on_demand_nodes_autoscaling" {
 }
 
 resource "google_container_node_pool" "on_demand_nodes_fixed" {
-  name               = "${var.gke_cluster_name}-on-demand-fixed"
+  name               = "${var.gke_cluster_name}-fixed-pool"
   location           = "${local.location}"
   cluster            = "${google_container_cluster.main.name}"
   initial_node_count = 1
@@ -97,4 +97,21 @@ resource "google_container_node_pool" "on_demand_nodes_fixed" {
       disable-legacy-endpoints = "true"
     }
   }
+}
+
+data "template_file" "poolpolicy-yaml" {
+  template = "${file("${path.module}/ballast-poolpolicy.tpl.yaml")}"
+  vars = {
+    project = "${var.gcp_project}"
+    location = "${local.location}"
+    cluster = "${google_container_cluster.main.name}"
+    source_pool = "${google_container_node_pool.preemptible_nodes.name}"
+    target_autoscaling_pool = "${google_container_node_pool.on_demand_nodes_autoscaling.name}"
+    target_fixed_pool = "${google_container_node_pool.on_demand_nodes_fixed.name}"
+  }
+}
+
+resource "local_file" "poolpolicy-yaml" {
+  content     = "${data.template_file.poolpolicy-yaml.rendered}"
+  filename = "${path.module}/ballast-poolpolicy.yaml"
 }

@@ -4,8 +4,7 @@
 .PHONY: dev.setup dev.destroy
 .PHONY: dev.run-externally dev.run-in-cluster
 .PHONY: dev.apply-policy dev.delete-policy
-.PHONY: deploy pools.list
-
+.PHONY: deploy
 
 help: ## Show this help
 help:
@@ -75,12 +74,12 @@ deploy:
 
 dev.apply-policy: ## Create/Update example PoolPolicy
 dev.apply-policy:
-	-@kubectl delete -f ./example.yaml
-	kubectl apply -f ./example.yaml
+	-@kubectl delete -f ./terraform/ballast-poolpolicy.yaml
+	kubectl apply -f ./terraform/ballast-poolpolicy.yaml
 
 dev.delete-policy: ## Delete example PoolPolicy
 dev.delete-policy:
-	kubectl delete -f ./example.yaml
+	kubectl delete -f ./terraform/ballast-poolpolicy.yaml
 
 clean:
 	rm -rf _build

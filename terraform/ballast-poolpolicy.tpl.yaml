@@ -3,17 +3,17 @@ kind: "PoolPolicy"
 metadata:
   name: ballast-example
 spec:
-  projectId: odanielc-70640
-  location: us-central1-a
-  clusterName: ballast
-  poolName: ballast-preemptible
+  projectId: ${project}
+  location: ${location}
+  clusterName: ${cluster}
+  poolName: ${source_pool}
   cooldownSeconds: 300
   targetPools:
-  - poolName: ballast-autoscaling-pool
+  - poolName: ${target_autoscaling_pool}
     minimumInstances: 1
     targetCapacityPercent: 20
-    location: us-central1-a
-  - poolName: ballast-fixed-pool
+    location: ${location}
+  - poolName: ${target_fixed_pool}
     minimumInstances: 2
     targetCapacityPercent: 20
-    location: us-central1-a
+    location: ${location}

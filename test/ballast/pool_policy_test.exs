@@ -37,8 +37,7 @@ defmodule Ballast.PoolPolicyTest do
               data: mock_data_response()
             },
             target_capacity_percent: 30,
-            minimum_instances: 1,
-            autoscaling_enabled: true
+            minimum_instances: 1
           }
         ]
       }

@@ -17,3 +17,7 @@ output "gke_on_demand_pool_autoscaling" {
 output "gke_on_demand_pool_fixed" {
   value = "${google_container_node_pool.on_demand_nodes_fixed.name}"
 }
+
+output "example_poolpolicy_yaml" {
+  value = "${local_file.poolpolicy-yaml.filename}"
+}

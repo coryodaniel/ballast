@@ -5,13 +5,12 @@ defmodule Ballast.PoolPolicy.Target do
   alias Ballast.NodePool
   require Logger
 
-  defstruct [:pool, :minimum_instances, :target_capacity_percent, :autoscaling_enabled]
+  defstruct [:pool, :minimum_instances, :target_capacity_percent]
 
   @type t :: %__MODULE__{
           pool: NodePool.t(),
           target_capacity_percent: pos_integer,
-          minimum_instances: pos_integer,
-          autoscaling_enabled: boolean()
+          minimum_instances: pos_integer
         }
 
   @doc """
@@ -32,8 +31,7 @@ defmodule Ballast.PoolPolicy.Target do
       %__MODULE__{
         pool: pool,
         target_capacity_percent: cast_target_capacity_percent(tp),
-        minimum_instances: cast_minimum_instances(mi),
-        autoscaling_enabled: NodePool.autoscaling_enabled?(pool.data)
+        minimum_instances: cast_minimum_instances(mi)
       }
     else
       {:error, %Tesla.Env{status: status}} ->

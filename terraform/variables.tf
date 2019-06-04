@@ -9,7 +9,7 @@ variable "gcp_project" {
 
 variable "gke_cluster_name" {
   description = "GKE Cluster Name"
-  default     = "ballast-demo"
+  default     = "ballast"
 }
 
 variable "gcp_credentials_path" {

@@ -8,6 +8,7 @@ defmodule Ballast.Controller.V1.PoolPolicy do
   alias Ballast.{PoolPolicy}
 
   @scope :cluster
+  @group "ballast.bonny.run"
 
   @names %{
     plural: "poolpolicies",
