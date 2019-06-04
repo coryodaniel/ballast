@@ -7,9 +7,9 @@ spec:
   location: my-source-region-or-zone
   clusterName: my-cluster
   poolName: my-source-pool
+  cooldownSeconds: 60
   targetPools:
   - poolName: my-target-pool
     minimumInstances: 1
     targetCapacityPercent: 30
-    cooldownSeconds: 600
     location: my-target-region-or-zone

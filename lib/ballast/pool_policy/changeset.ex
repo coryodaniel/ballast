@@ -7,7 +7,7 @@ defmodule Ballast.PoolPolicy.Changeset do
 
   defstruct [:pool, :minimum_count]
 
-  @type t :: %{
+  @type t :: %__MODULE__{
           pool: Ballast.NodePool.t(),
           minimum_count: pos_integer
         }
@@ -21,7 +21,7 @@ defmodule Ballast.PoolPolicy.Changeset do
       ...> Ballast.PoolPolicy.Changeset.new(target, source_count)
       %Ballast.PoolPolicy.Changeset{minimum_count: 3}
   """
-  @spec new(PoolPolicy.Target.t(), pos_integer) :: t
+  @spec new(PoolPolicy.Target.t(), integer) :: t
   def new(target, source_count) do
     new_minimum_count = calc_new_minimum_count(source_count, target.target_capacity_percent, target.minimum_instances)
     %PoolPolicy.Changeset{pool: target.pool, minimum_count: new_minimum_count}

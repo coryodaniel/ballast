@@ -8,6 +8,7 @@ defmodule Ballast.NodePool.Adapters.GKE do
 
   alias GoogleApi.Container.V1.Api.Projects, as: Container
   alias GoogleApi.Compute.V1.Api.InstanceGroups
+  require Logger
 
   @impl Ballast.NodePool.Adapters
   def get(%Ballast.NodePool{} = pool, conn) do
@@ -29,48 +30,43 @@ defmodule Ballast.NodePool.Adapters.GKE do
 
   @impl Ballast.NodePool.Adapters
   def scale(%Ballast.PoolPolicy.Changeset{} = changeset, conn) do
+    Logger.info("Scaling #{changeset.pool.name} to #{changeset.minimum_count}")
+
     case autoscaling_enabled?(changeset.pool) do
       true -> set_autoscaling(changeset.pool, changeset.minimum_count, conn)
       false -> set_size(changeset.pool, changeset.minimum_count, conn)
     end
   end
 
-
+  @spec set_autoscaling(Ballast.NodePool.t(), pos_integer, Tesla.Client.t()) :: :ok | {:error, Tesla.Env.t()}
   defp set_autoscaling(pool, minimum_count, conn) do
     id = Ballast.NodePool.id(pool)
     old_autoscaling = pool.data.autoscaling
     new_autoscaling = Map.put(old_autoscaling, :minNodeCount, minimum_count)
 
-    # conn needs to be passed in like the other functions @@
-    # conn, name, [body: ]
-    # body =  %GoogleApi.Container.V1.Model.SetNodePoolAutoscalingRequest{
-    #   autoscaling: %GoogleApi.Container.V1.Model.NodePoolAutoscaling{
-    #     enabled: any(),
-    #     maxNodeCount: any(),
-    #     minNodeCount: any()
-    #   },
-    #   #name: any()
-    # }
-
     body = %{autoscaling: new_autoscaling}
-    opts = [body: body]
-    resp = Container.container_projects_locations_clusters_node_pools_set_autoscaling(conn, id, opts)
-    IO.puts "Resp: #{inspect(resp)}"
 
-    IO.puts "Would autoscaling"
-    :ok
+    conn
+    |> Container.container_projects_locations_clusters_node_pools_set_autoscaling(id, body: body)
+    |> handle_response()
   end
 
+  @spec set_size(Ballast.NodePool.t(), pos_integer, Tesla.Client.t()) :: :ok | {:error, Tesla.Env.t()}
   defp set_size(pool, minimum_count, conn) do
-    # conn, name, [body: ]
-    # body = %GoogleApi.Container.V1.Model.SetNodePoolSizeRequest{
-    #   name: any(),
-    #   nodeCount: any(),
-    # }
+    id = Ballast.NodePool.id(pool)
+    body = %{nodeCount: minimum_count}
 
-    # Container.container_projects_locations_clusters_node_pools_set_size/N
-    IO.puts "Would size"
-    :ok
+    conn
+    |> Container.container_projects_locations_clusters_node_pools_set_size(id, body: body)
+    |> handle_response
+  end
+
+  def handle_response({:ok, _}), do: :ok
+
+  def handle_response({:error, tesla} = error) do
+    Logger.error("HTTP Status: #{tesla.status}")
+    Logger.error("HTTP Body: #{tesla.body}")
+    error
   end
 
   @doc """

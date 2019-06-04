@@ -4,19 +4,10 @@ defmodule Ballast.NodePool.Adapters.GKETest do
   alias Ballast.NodePool
 
   @moduletag :external
-  @integration_config "test/support/integration_config.yaml"
 
   defp config() do
-    conf = YamlElixir.read_from_file!(@integration_config)
-
-    %{
-      "cluster" => cluster,
-      "location" => location,
-      "pool" => pool,
-      "project" => project
-    } = conf["gke"]
-
-    {project, location, cluster, pool}
+    gcp_project = System.get_env("GCP_PROJECT")
+    {gcp_project, "us-central1-a", "ballast-demo", "ballast-demo-on-demand-autoscaling"}
   end
 
   describe "autoscaling_enabled?/1" do
@@ -43,19 +34,32 @@ defmodule Ballast.NodePool.Adapters.GKETest do
 
   describe "scale/1" do
     test "when autoscaling is disabled" do
-      assert false
-      # iex> node_pool = Ballast.NodePool.new("my-proj", "my-loc", "my-cluster", "my-pool")
-      # ...> target = %Ballast.PoolPolicy.Target{pool: node_pool, target_capacity_percent: 30, minimum_instances: 1, autoscaling_enabled: false}
-      # ...> source_instance_count = 10
-      # ...> changeset = Ballast.PoolPolicy.Changeset.new(target, source_instance_count)
-      # ...> Ballast.NodePool.scale(changeset)
-      #   # Adapter.setSize, setAutoscaling
-      #   IO.puts(changeset.minimum_count)
-      #   IO.puts("#{inspect(changeset.pool)}")
+      {:ok, conn} = Ballast.conn()
+      {project, location, cluster, _} = config()
+      pool = "ballast-demo-on-demand-fixed"
+      node_pool = NodePool.new(project, location, cluster, pool)
+
+      target = %Ballast.PoolPolicy.Target{pool: node_pool, target_capacity_percent: 10, minimum_instances: 1}
+      source_instance_count = 10
+      changeset = Ballast.PoolPolicy.Changeset.new(target, source_instance_count)
+
+      refute GKE.autoscaling_enabled?(changeset.pool)
+      assert :ok = GKE.scale(changeset, conn)
     end
 
     test "when autoscaling is enabled" do
-      assert false
+      {:ok, conn} = Ballast.conn()
+      {project, location, cluster, pool} = config()
+
+      data = %{autoscaling: %{enabled: true, maxNodeCount: 3}}
+      node_pool = NodePool.new(project, location, cluster, pool, data)
+
+      target = %Ballast.PoolPolicy.Target{pool: node_pool, target_capacity_percent: 10, minimum_instances: 1}
+      source_instance_count = 10
+      changeset = Ballast.PoolPolicy.Changeset.new(target, source_instance_count)
+
+      assert GKE.autoscaling_enabled?(changeset.pool)
+      assert :ok = GKE.scale(changeset, conn)
     end
   end
 
@@ -72,7 +76,7 @@ defmodule Ballast.NodePool.Adapters.GKETest do
   end
 
   describe "size/2" do
-    test "sets current size to a NodePool with data" do
+    test "gets the current size of a NodePool" do
       {:ok, conn} = Ballast.conn()
       {project, location, cluster, pool} = config()
       node_pool = NodePool.new(project, location, cluster, pool)

@@ -6,11 +6,15 @@ defmodule Ballast.PoolPolicy do
   alias Ballast.{NodePool, PoolPolicy}
   require Logger
 
-  defstruct pool: nil, targets: [], changesets: []
+  defstruct name: nil, pool: nil, targets: [], changesets: [], cooldown_seconds: nil
+
+  @default_cooldown_seconds 300
 
   @typedoc "PoolPolicy"
   @type t :: %__MODULE__{
+          name: nil | String.t(),
           pool: NodePool.t(),
+          cooldown_seconds: pos_integer,
           targets: list(PoolPolicy.Target.t()),
           changesets: list(PoolPolicy.Changeset.t())
         }
@@ -19,12 +23,14 @@ defmodule Ballast.PoolPolicy do
   Converts a `Ballast.Controller.V1.PoolPolicy` resource to a `Ballast.PoolPolicy` and populates target `NodePool`s data.
   """
   @spec from_resource(map) :: {:ok, t} | {:error, Tesla.Env.t()}
-  def from_resource(resource) do
+  def from_resource(%{"metadata" => %{"name" => name}} = resource) do
     pool = NodePool.new(resource)
 
     with {:ok, conn} <- Ballast.conn(), {:ok, pool} <- NodePool.get(pool, conn) do
       targets = make_targets(resource)
-      {:ok, %PoolPolicy{pool: pool, targets: targets}}
+      cooldown = get_in(resource, ["spec", "cooldownSeconds"]) || @default_cooldown_seconds
+      policy = %PoolPolicy{pool: pool, targets: targets, name: name, cooldown_seconds: cooldown}
+      {:ok, policy}
     else
       {:error, %Tesla.Env{status: status} = error} ->
         Logger.error("Could not GET source pool #{NodePool.id(pool)}. HTTP Status: #{status}")
@@ -32,10 +38,13 @@ defmodule Ballast.PoolPolicy do
     end
   end
 
-  # TODO: doc, spec
+  @doc """
+  Applies all changesets
+  """
+  @spec apply(t) :: :ok
   def apply(%__MODULE__{} = policy) do
     {:ok, conn} = Ballast.conn()
-    Enum.map(policy.changesets, &(NodePool.scale(&1, conn)))
+    Enum.each(policy.changesets, &NodePool.scale(&1, conn))
     :ok
   end
 

@@ -17,6 +17,8 @@ defmodule Ballast.PoolPolicyTest do
       {:ok, policy} = PoolPolicy.from_resource(resource)
 
       expected = %PoolPolicy{
+        cooldown_seconds: 60,
+        name: "example-policy",
         pool: %NodePool{
           cluster: "my-cluster",
           project: "my-project",

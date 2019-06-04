@@ -1,0 +1,11 @@
+_build
+.elixir_ls
+cover
+deps
+doc
+test
+.*
+coveralls.json
+Makefile
+local.Makefile
+erl_crash.dump

@@ -25,4 +25,9 @@ ballast-*.tar
 .elixir_ls
 .iex.exs
 local.Makefile
-test/support/integration_config.yaml
+
+# Terraform
+.terraform
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfvars

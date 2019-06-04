@@ -8,6 +8,7 @@ defmodule Ballast.Controller.V1.PoolPolicy do
   alias Ballast.{PoolPolicy}
 
   @scope :cluster
+
   @names %{
     plural: "poolpolicies",
     singular: "poolpolicy",
@@ -64,13 +65,20 @@ defmodule Ballast.Controller.V1.PoolPolicy do
   @spec do_apply(map) :: :ok | :error
   defp do_apply(payload) do
     with {:ok, policy} <- PoolPolicy.from_resource(payload),
+         :ok <- PoolPolicy.Store.ready?(policy),
          {:ok, policy} <- PoolPolicy.changesets(policy),
          :ok <- PoolPolicy.apply(policy) do
-
-      # TODO: backoff
+      PoolPolicy.Store.ran(policy)
+      Logger.info("Applying: #{policy.name}")
+      Logger.debug("Changesets: #{inspect(policy.changesets)}")
       :ok
     else
-      error ->
+      {:error, :cooling_down} ->
+        name = get_in(payload, ["metadata", "name"])
+        Logger.info("Policy '#{name}' is in cooldown.")
+        :ok
+
+      :error ->
         :error
     end
   end

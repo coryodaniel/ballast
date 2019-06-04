@@ -1,0 +1,19 @@
+apiVersion: ballast.example.com/v1
+kind: "PoolPolicy"
+metadata:
+  name: ballast-demo
+spec:
+  projectId: odanielc-70640
+  location: us-central1-a
+  clusterName: ballast-demo
+  poolName: ballast-demo-preemptible
+  cooldownSeconds: 300
+  targetPools:
+  - poolName: ballast-demo-on-demand-autoscaling
+    minimumInstances: 1
+    targetCapacityPercent: 20
+    location: us-central1-a
+  - poolName: ballast-demo-on-demand-fixed
+    minimumInstances: 2
+    targetCapacityPercent: 20
+    location: us-central1-a

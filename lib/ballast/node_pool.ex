@@ -99,7 +99,7 @@ defmodule Ballast.NodePool do
       ...> Ballast.NodePool.scale(changeset, Ballast.conn())
       :ok
   """
-  @spec scale(Ballast.PoolPolicy.Changeset.t, Tesla.Client.t()) :: :ok | {:error, Tesla.Env.t()}
+  @spec scale(Ballast.PoolPolicy.Changeset.t(), Tesla.Client.t()) :: :ok | {:error, Tesla.Env.t()}
   def scale(changeset, conn), do: @adapter.scale(changeset, conn)
 
   @doc """

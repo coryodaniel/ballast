@@ -7,7 +7,7 @@ defmodule Ballast.PoolPolicy.Target do
 
   defstruct [:pool, :minimum_instances, :target_capacity_percent, :autoscaling_enabled]
 
-  @type t :: %{
+  @type t :: %__MODULE__{
           pool: NodePool.t(),
           target_capacity_percent: pos_integer,
           minimum_instances: pos_integer,
@@ -17,7 +17,7 @@ defmodule Ballast.PoolPolicy.Target do
   @doc """
   Parse resource `target` spec and annotate with `NodePool` data from API.
   """
-  @spec new(map(), binary(), binary()) :: Ballast.PoolPolicy.Target.t() | nil
+  @spec new(map(), binary(), binary()) :: t() | nil
   def new(target_spec, project, cluster) do
     %{
       "targetCapacityPercent" => tp,
