@@ -12,7 +12,7 @@ It is particularly useful for running **preemptible** node pools with _on demand
   - [Managing Ballast PoolPolicies](#managing-ballast-poolpolicies)
     - [Example `PoolPolicy`](#example-poolpolicy)
     - [Optimizing costs with preemptible pools and node affinity](#optimizing-costs-with-preemptible-pools-and-node-affinity)
-  - [Development](#development)
+  - [Contributing](#contributing)
     - [Setting up a development/test cluster](#setting-up-a-developmenttest-cluster)
       - [Using docker-desktop](#using-docker-desktop)
       - [Using terraform and GKE](#using-terraform-and-gke)
@@ -143,9 +143,11 @@ spec:
             - "preemptible"
 ```
 
-## Development
+## Contributing
 
-Ballast is built with the [bonny operator framework](https://github.com/coryodaniel/bonny) and Elixir. [Terraform](https://terraform.io) is used to provision test clusters.
+Ballast is built with the [bonny operator framework](https://github.com/coryodaniel/bonny) and Elixir.
+
+[Terraform](https://terraform.io) is used to provision test clusters.
 
 A number of make targets exist to aid in development and testing:
 

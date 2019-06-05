@@ -4,6 +4,7 @@
 .PHONY: dev.policy.apply dev.policy.delete
 .PHONY: dev.scale.down dev.scale.start dev.scale.totals dev.scale.up dev.scale.where
 .PHONY: dev.start.iex dev.start.in-cluster
+.PHONY: dev.roll.autoscaling dev.roll.fixed dev.roll.preemptible
 
 IMAGE=quay.io/coryodaniel/ballast
 
@@ -89,7 +90,14 @@ dev.scale.where: ## Show which nodes scaled nginx test is on
 dev.scale.totals: ## Node pool to pod count
 	$(MAKE) dev.scale.where | grep -Fo -e preemptible -e autoscaling -e fixed | uniq -c
 
-dev.roll.%: ## Rolling replace a node pool by "name": autoscaling, fixed, preemptible
+dev.roll.autoscaling: ## Rolling replace the autoscaling (target) node pool
+dev.roll.autoscaling: _roll_cluster.autoscaling
+dev.roll.fixed: ## Rolling replace the fixed (target) node pool
+dev.roll.fixed: _roll_cluster.fixed
+dev.roll.preemptible: ## Rolling replace the preemptible (source) node pool
+dev.roll.preemptible: _roll_cluster.preemptible
+
+_roll_cluster.%:
 	gcloud compute instance-groups managed list |\
 		grep gke-ballast-ballast-$* |\
 		awk '{print $$1}' |\
