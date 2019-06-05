@@ -6,7 +6,8 @@ provider "google" {
 }
 
 locals {
-  location = "${var.gcp_region}-a"
+  location   = "${var.gcp_region}-a"
+  node_group = "ballast-example-group"
 }
 
 resource "google_container_cluster" "main" {
@@ -27,9 +28,9 @@ resource "google_container_cluster" "main" {
 }
 
 resource "google_container_node_pool" "preemptible_nodes" {
-  name     = "${var.gke_cluster_name}-preemptible"
-  location = "${local.location}"
-  cluster  = "${google_container_cluster.main.name}"
+  name               = "${var.gke_cluster_name}-preemptible"
+  location           = "${local.location}"
+  cluster            = "${google_container_cluster.main.name}"
   initial_node_count = 5
 
   autoscaling {
@@ -38,7 +39,7 @@ resource "google_container_node_pool" "preemptible_nodes" {
   }
 
   management {
-    auto_repair = true
+    auto_repair  = true
     auto_upgrade = true
   }
 
@@ -49,13 +50,18 @@ resource "google_container_node_pool" "preemptible_nodes" {
     metadata = {
       disable-legacy-endpoints = "true"
     }
+
+    labels {
+      node-group = "${local.node_group}"
+      node-type  = "preemptible"
+    }
   }
 }
 
 resource "google_container_node_pool" "on_demand_nodes_autoscaling" {
-  name     = "${var.gke_cluster_name}-autoscaling-pool"
-  location = "${local.location}"
-  cluster  = "${google_container_cluster.main.name}"
+  name               = "${var.gke_cluster_name}-autoscaling-pool"
+  location           = "${local.location}"
+  cluster            = "${google_container_cluster.main.name}"
   initial_node_count = 1
 
   autoscaling {
@@ -64,7 +70,7 @@ resource "google_container_node_pool" "on_demand_nodes_autoscaling" {
   }
 
   management {
-    auto_repair = true
+    auto_repair  = true
     auto_upgrade = true
   }
 
@@ -74,6 +80,10 @@ resource "google_container_node_pool" "on_demand_nodes_autoscaling" {
 
     metadata = {
       disable-legacy-endpoints = "true"
+    }
+
+    labels {
+      node-group = "${local.node_group}"
     }
   }
 }
@@ -85,7 +95,7 @@ resource "google_container_node_pool" "on_demand_nodes_fixed" {
   initial_node_count = 1
 
   management {
-    auto_repair = true
+    auto_repair  = true
     auto_upgrade = true
   }
 
@@ -96,22 +106,52 @@ resource "google_container_node_pool" "on_demand_nodes_fixed" {
     metadata = {
       disable-legacy-endpoints = "true"
     }
+
+    labels {
+      node-group = "${local.node_group}"
+    }
+  }
+}
+
+resource "google_container_node_pool" "other" {
+  name               = "${var.gke_cluster_name}-other"
+  location           = "${local.location}"
+  cluster            = "${google_container_cluster.main.name}"
+  initial_node_count = 3
+
+  autoscaling {
+    min_node_count = 3
+    max_node_count = 5
+  }
+
+  management {
+    auto_repair  = true
+    auto_upgrade = true
+  }
+
+  node_config {
+    machine_type = "n1-standard-1"
+
+    metadata = {
+      disable-legacy-endpoints = "true"
+    }
   }
 }
 
 data "template_file" "poolpolicy-yaml" {
   template = "${file("${path.module}/ballast-poolpolicy.tpl.yaml")}"
+
   vars = {
-    project = "${var.gcp_project}"
-    location = "${local.location}"
-    cluster = "${google_container_cluster.main.name}"
-    source_pool = "${google_container_node_pool.preemptible_nodes.name}"
+    project                 = "${var.gcp_project}"
+    location                = "${local.location}"
+    cluster                 = "${google_container_cluster.main.name}"
+    source_pool             = "${google_container_node_pool.preemptible_nodes.name}"
     target_autoscaling_pool = "${google_container_node_pool.on_demand_nodes_autoscaling.name}"
-    target_fixed_pool = "${google_container_node_pool.on_demand_nodes_fixed.name}"
+    target_fixed_pool       = "${google_container_node_pool.on_demand_nodes_fixed.name}"
   }
 }
 
 resource "local_file" "poolpolicy-yaml" {
-  content     = "${data.template_file.poolpolicy-yaml.rendered}"
+  content  = "${data.template_file.poolpolicy-yaml.rendered}"
   filename = "${path.module}/ballast-poolpolicy.yaml"
 }

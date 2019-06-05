@@ -1,14 +1,12 @@
-.PHONY: help
-.PHONY: clean ci lint test analyze docs
-.PHONY: build compile push
-.PHONY: dev.setup dev.destroy
-.PHONY: dev.run-externally dev.run-in-cluster
-.PHONY: dev.apply-policy dev.delete-policy
-.PHONY: deploy
+.PHONY: all build clean compile help integration lint push test
+.PHONY: dev.cluster.apply dev.cluster.delete
+.PHONY: dev.operator.apply dev.operator.delete
+.PHONY: dev.policy.apply dev.policy.delete
+.PHONY: dev.scale.down dev.scale.start dev.scale.totals dev.scale.up dev.scale.where
 
 help: ## Show this help
 help:
-	@grep -E '^[a-zA-Z0-9._-]+:.*?## .*$$' Makefile | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9._%-]+:.*?## .*$$' Makefile | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 guard-%: # Creates an environment variable requirement by setting a prereq of guard-YOUR_ENV_VAR
 	@ if [ -z '${${*}}' ]; then \
@@ -16,21 +14,17 @@ guard-%: # Creates an environment variable requirement by setting a prereq of gu
 		exit 1;\
 	fi
 
-include local.Makefile
+all: ## Lints, tests, compiles, and pushes "latest" docker tag.
+all: lint test compile build push
 
-all: ## Compiles and builds a remote operator - refactor name
-all: clean compile build apply
-
-ci: ## Test, lint, and generate docs
-ci:
-	mix lint
+test: ## Run unit tests with coverage
 	mix test --exclude external:true --cover
 
-test: ## Run tests with coverage
+integration: ## Run integration tests with coverage.
 	mix test --cover
 
-docs: ## Generate docs
-	mix docs
+lint: ## run format, credo, and dialyzer
+	mix lint
 
 compile: ## Compile ballast
 	mix deps.get
@@ -44,53 +38,64 @@ push: ## Release 'latest' docker image
 push: guard-IMAGE
 	docker push ${IMAGE}:latest
 
-dev.setup: ## Setup dev/test cluster
-dev.setup:
-	cd terraform && terraform init && \
-		terraform apply -var-file=terraform.tfvars
-
-dev.destroy: ## Destroy dev/test cluster
-	cd terraform && terraform destroy -var-file=terraform.tfvars
-
-dev.run-externally: ## Compile and run operator external to cluster connecting to `CLUSTER_CONTEXT`
-dev.run-externally: compile
-dev.run-externally:
-	- rm manifest.yaml
-	mix bonny.gen.manifest
-	kubectl apply -f ./manifest.yaml --context=${CLUSTER_CONTEXT}
-	iex --dot-iex .iex.exs -S mix
-
-dev.run-in-cluster: ## Run operator on `CLUSTER_CONTEXT` using the docker image `IMAGE`
-dev.run-in-cluster:
-	- rm manifest.yaml
-	mix bonny.gen.manifest --image ${IMAGE}
-	kubectl apply -f ./manifest.yaml --context=${CLUSTER_CONTEXT}
-
-deploy: ## Run operator.yaml on `CLUSTER_CONTEXT`
-deploy:
-	-@kubectl delete -f ./manifest.yaml --context=${CLUSTER_CONTEXT}
-	-@kubectl delete -f ./operator.yaml --context=${CLUSTER_CONTEXT}
-	kubectl apply -f ./operator.yaml
-
-dev.apply-policy: ## Create/Update example PoolPolicy
-dev.apply-policy:
-	-@kubectl delete -f ./terraform/ballast-poolpolicy.yaml
-	kubectl apply -f ./terraform/ballast-poolpolicy.yaml
-
-dev.delete-policy: ## Delete example PoolPolicy
-dev.delete-policy:
-	kubectl delete -f ./terraform/ballast-poolpolicy.yaml
-
-clean:
+clean: ## Clean builds, dependencies, coverage reports, and docs
 	rm -rf _build
 	rm -rf deps
 	rm -rf cover
 	rm -rf doc
 
-# .PHONY: crds
-# crds:
-# 	kubectl get crd  --context=${CLUSTER_CONTEXT}
+include local.Makefile
 
-# .PHONY: list
-# list:
-# 	kubectl get pod,deploy,service,pp --context=${CLUSTER_CONTEXT}
+# dev.setup:
+# local.Makefile:
+# 	touch local.Makefile
+# 	echo "IMAGE=quay.io/coryodaniel/ballast" >> local.Makefile
+# 	echo "# GCP_PROJECT=project-id-here" >> local.Makefile
+# 	echo "# GOOGLE_APPLICATION_CREDENTIALS=path-to-project-credentials" >> local.Makefile
+# 	echo "# export IMAGE=quay.io/coryodaniel/ballast" >> local.Makefile
+
+dev.cluster.apply: ## Create / Update development cluster
+dev.cluster.apply:
+	cd terraform && terraform init && \
+		terraform apply -var-file=terraform.tfvars
+
+dev.cluster.delete: ## Delete development cluster
+	cd terraform && terraform destroy -var-file=terraform.tfvars
+
+dev.operator.apply: ## Run operator.yaml in kubectl current context
+	-@kubectl delete -f ./operator.yaml
+	kubectl apply -f ./operator.yaml
+
+dev.operator.delete: ## Delete the operator in kubectl current context
+	kubectl delete -f ./operator.yaml
+
+dev.policy.apply: ## Create / Update example PoolPolicy
+dev.policy.apply:
+	-@kubectl delete -f ./terraform/ballast-poolpolicy.yaml
+	kubectl apply -f ./terraform/ballast-poolpolicy.yaml
+
+dev.policy.delete: ## Delete example PoolPolicy
+dev.policy.delete:
+	kubectl delete -f ./terraform/ballast-poolpolicy.yaml
+
+dev.scale.start: ## Start an nginx deployment
+	kubectl apply -f ./test-scale-up.yaml
+
+dev.scale.up: ## Scale nginx deployment to 250
+dev.scale.up: dev.scale.start
+	kubectl scale --replicas=250 -f ./test-scale-up.yaml
+
+dev.scale.down: ## Destroy nginx deployment
+	kubectl delete -f ./test-scale-up.yaml
+
+dev.scale.where: ## Show which nodes scaled nginx test is on
+	kubectl get pods -o wide --sort-by="{.spec.nodeName}" --chunk-size=0
+
+dev.scale.totals: ## Node pool to pod count
+	$(MAKE) dev.scale.where | grep -Fo -e preemptible -e autoscaling -e fixed | uniq -c
+
+dev.roll.%: ## Rolling replace a node pool by "name": autoscaling, fixed, preemptible
+	gcloud compute instance-groups managed list |\
+		grep gke-ballast-ballast-$* |\
+		awk '{print $$1}' |\
+		xargs -I '{}' gcloud compute instance-groups managed rolling-action replace '{}' --zone us-central1-a --max-unavailable 100 --max-surge 1

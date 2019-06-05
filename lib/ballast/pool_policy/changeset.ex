@@ -33,7 +33,7 @@ defmodule Ballast.PoolPolicy.Changeset do
   Returns the calculated target count when the target count is above the minimum instance count, else returns the minimum instance count.
 
   ## Examples
-    Targcalc_instance_countet count is less than minimum
+    Target count is less than minimum
       iex> {current_source_count, target_percent, minimum_count} = {10, 10, 2}
       ...> Ballast.PoolPolicy.Changeset.calc_new_minimum_count(current_source_count, target_percent, minimum_count)
       2

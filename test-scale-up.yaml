@@ -6,12 +6,29 @@ spec:
   selector:
     matchLabels:
       app: nginx
-  replicas: 100
+  replicas: 10
   template:
     metadata:
       labels:
         app: nginx
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-group
+                operator: In
+                values:
+                - ballast-example-group
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            preference:
+              matchExpressions:
+              - key: node-type
+                operator: In
+                values:
+                - preemptible
       containers:
       - name: nginx
         image: nginx:1.7.9
@@ -19,8 +36,8 @@ spec:
         - containerPort: 80
         resources:
           limits:
-            cpu: 1
-            memory: 128Mi
+            cpu: 50m
+            memory: 50Mi
           requests:
-            cpu: 1
-            memory: 128Mi
+            cpu: 50m
+            memory: 50Mi

@@ -17,13 +17,17 @@ defmodule Ballast.PoolPolicy.Target do
   Parse resource `target` spec and annotate with `NodePool` data from API.
   """
   @spec new(map(), binary(), binary()) :: t() | nil
-  def new(target_spec, project, cluster) do
+  def new(target_spec, project, source_cluster) do
     %{
       "targetCapacityPercent" => tp,
       "minimumInstances" => mi,
       "poolName" => name,
       "location" => location
     } = target_spec
+
+    # Support target pools in different clusters than the source pool's cluster.
+    # If not set then the pool is expected to be the in the source pool's cluster
+    cluster = Map.get(target_spec, "clusterName", source_cluster)
 
     pool = NodePool.new(project, location, cluster, name)
 
