@@ -23,8 +23,6 @@ erl_crash.dump
 ballast-*.tar
 
 .elixir_ls
-.iex.exs
-local.Makefile
 
 # Terraform
 .terraform
@@ -36,3 +34,4 @@ terraform/ballast-poolpolicy.yaml
 
 # Ballast
 manifest.yaml
+env

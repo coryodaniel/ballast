@@ -1,8 +1,11 @@
-.PHONY: all build clean compile help integration lint push test
+.PHONY: all build clean compile help integration lint push test setup
 .PHONY: dev.cluster.apply dev.cluster.delete
-.PHONY: dev.operator.apply dev.operator.delete
+.PHONY: operator.apply operator.delete
 .PHONY: dev.policy.apply dev.policy.delete
 .PHONY: dev.scale.down dev.scale.start dev.scale.totals dev.scale.up dev.scale.where
+.PHONY: dev.start.iex
+
+IMAGE=quay.io/coryodaniel/ballast
 
 help: ## Show this help
 help:
@@ -16,6 +19,8 @@ guard-%: # Creates an environment variable requirement by setting a prereq of gu
 
 all: ## Lints, tests, compiles, and pushes "latest" docker tag.
 all: lint test compile build push
+
+setup: ## Setup
 
 test: ## Run unit tests with coverage
 	mix test --exclude external:true --cover
@@ -44,16 +49,6 @@ clean: ## Clean builds, dependencies, coverage reports, and docs
 	rm -rf cover
 	rm -rf doc
 
-include local.Makefile
-
-# dev.setup:
-# local.Makefile:
-# 	touch local.Makefile
-# 	echo "IMAGE=quay.io/coryodaniel/ballast" >> local.Makefile
-# 	echo "# GCP_PROJECT=project-id-here" >> local.Makefile
-# 	echo "# GOOGLE_APPLICATION_CREDENTIALS=path-to-project-credentials" >> local.Makefile
-# 	echo "# export IMAGE=quay.io/coryodaniel/ballast" >> local.Makefile
-
 dev.cluster.apply: ## Create / Update development cluster
 dev.cluster.apply:
 	cd terraform && terraform init && \
@@ -62,11 +57,11 @@ dev.cluster.apply:
 dev.cluster.delete: ## Delete development cluster
 	cd terraform && terraform destroy -var-file=terraform.tfvars
 
-dev.operator.apply: ## Run operator.yaml in kubectl current context
+operator.apply: ## Run operator.yaml in kubectl current context using the latest docker image
 	-@kubectl delete -f ./operator.yaml
 	kubectl apply -f ./operator.yaml
 
-dev.operator.delete: ## Delete the operator in kubectl current context
+operator.delete: ## Delete the operator in kubectl current context
 	kubectl delete -f ./operator.yaml
 
 dev.policy.apply: ## Create / Update example PoolPolicy
@@ -99,3 +94,14 @@ dev.roll.%: ## Rolling replace a node pool by "name": autoscaling, fixed, preemp
 		grep gke-ballast-ballast-$* |\
 		awk '{print $$1}' |\
 		xargs -I '{}' gcloud compute instance-groups managed rolling-action replace '{}' --zone us-central1-a --max-unavailable 100 --max-surge 1
+
+dev.start.iex: ## Deploys CRD and RBAC to kubectl current context, but runs ballast in iex
+	- rm manifest.yaml
+	mix bonny.gen.manifest
+	kubectl apply -f ./manifest.yaml
+	iex --dot-iex .iex.exs -S mix
+
+dev.start.in-cluster: ## Deploys "latest" docker image into kubectl current context w/ a newly generated manifest.yaml
+	- rm manifest.yaml
+	mix bonny.gen.manifest --image ${IMAGE}
+	kubectl apply -f ./manifest.yaml
