@@ -3,7 +3,7 @@
 .PHONY: operator.apply operator.delete
 .PHONY: dev.policy.apply dev.policy.delete
 .PHONY: dev.scale.down dev.scale.start dev.scale.totals dev.scale.up dev.scale.where
-.PHONY: dev.start.iex
+.PHONY: dev.start.iex dev.start.in-cluster
 
 IMAGE=quay.io/coryodaniel/ballast
 
