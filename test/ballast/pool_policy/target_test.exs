@@ -14,7 +14,7 @@ defmodule Ballast.PoolPolicy.TargetTest do
         "location" => "us-central1-a"
       }
 
-      target = Target.new(spec, "my-project", "my-cluster")
+      {:ok, target} = Target.new(spec, "my-project", "my-cluster")
       assert %Ballast.NodePool{} = target.pool
     end
 
@@ -26,7 +26,7 @@ defmodule Ballast.PoolPolicy.TargetTest do
         "location" => "us-central1-a"
       }
 
-      target = Target.new(spec, "my-project", "my-cluster")
+      {:ok, target} = Target.new(spec, "my-project", "my-cluster")
       assert target.target_capacity_percent == 30
     end
 
@@ -38,7 +38,7 @@ defmodule Ballast.PoolPolicy.TargetTest do
         "location" => "us-central1-a"
       }
 
-      target = Target.new(spec, "my-project", "my-cluster")
+      {:ok, target} = Target.new(spec, "my-project", "my-cluster")
       assert target.minimum_instances == 2
     end
 
@@ -51,8 +51,7 @@ defmodule Ballast.PoolPolicy.TargetTest do
       }
 
       capture_log(fn ->
-        target = Target.new(spec, "my-project", "my-cluster")
-        refute target
+        assert {:error, pool_not_found} = Target.new(spec, "my-project", "my-cluster")
       end)
     end
   end

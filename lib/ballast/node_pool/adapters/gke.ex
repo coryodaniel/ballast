@@ -24,7 +24,11 @@ defmodule Ballast.NodePool.Adapters.GKE do
          {:ok, %{size: size}} <- InstanceGroups.compute_instance_groups_get(conn, project, zone, name) do
       {:ok, size}
     else
-      error -> error
+      {:error, error} when is_atom(error) ->
+        Logger.error("Error getting NodePool size: #{error}")
+
+      {:error, error = %Tesla.Env{}} ->
+        Ballast.log_http_error(error)
     end
   end
 
@@ -61,13 +65,9 @@ defmodule Ballast.NodePool.Adapters.GKE do
     |> handle_response
   end
 
+  @spec handle_response({:ok, any} | {:error, any}) :: :ok | {:error, any}
   def handle_response({:ok, _}), do: :ok
-
-  def handle_response({:error, tesla} = error) do
-    Logger.error("HTTP Status: #{tesla.status}")
-    Logger.error("HTTP Body: #{tesla.body}")
-    error
-  end
+  def handle_response({:error, error = %Tesla.Env{}}), do: Ballast.log_http_error(error)
 
   @doc """
   Parses a Google API `instanceGroupUrl` into arguments for `GoogleApi.Compute.V1.Api.InstanceGroups`.

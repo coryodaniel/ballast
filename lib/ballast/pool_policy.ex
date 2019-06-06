@@ -71,13 +71,11 @@ defmodule Ballast.PoolPolicy do
   # make_targets/1 removes targets that encountered errors in `Ballast.NodePool.Adapter/g2`
   @spec make_targets(map) :: list(PoolPolicy.Target.t())
   defp make_targets(%{"spec" => %{"targetPools" => targets}} = resource) do
-    {project, cluster} = get_project_and_cluster(resource)
+    %{"spec" => %{"projectId" => project, "clusterName" => cluster}} = resource
 
     targets
     |> Enum.map(fn target -> PoolPolicy.Target.new(target, project, cluster) end)
-    |> Enum.reject(&is_nil/1)
+    |> Enum.reject(fn {status, _} -> status == :error end)
+    |> Enum.map(fn {:ok, target} -> target end)
   end
-
-  @spec get_project_and_cluster(map) :: {String.t(), String.t()}
-  defp get_project_and_cluster(%{"spec" => %{"projectId" => p, "clusterName" => c}}), do: {p, c}
 end

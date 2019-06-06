@@ -16,7 +16,7 @@ defmodule Ballast.PoolPolicy.Target do
   @doc """
   Parse resource `target` spec and annotate with `NodePool` data from API.
   """
-  @spec new(map(), binary(), binary()) :: t() | nil
+  @spec new(map(), binary(), binary()) :: {:ok, t()} | {:error, atom}
   def new(target_spec, project, source_cluster) do
     %{
       "targetCapacityPercent" => tp,
@@ -32,15 +32,16 @@ defmodule Ballast.PoolPolicy.Target do
     pool = NodePool.new(project, location, cluster, name)
 
     with {:ok, conn} <- Ballast.conn(), {:ok, pool} <- NodePool.get(pool, conn) do
-      %__MODULE__{
-        pool: pool,
-        target_capacity_percent: cast_target_capacity_percent(tp),
-        minimum_instances: cast_minimum_instances(mi)
-      }
+      {:ok,
+       %__MODULE__{
+         pool: pool,
+         target_capacity_percent: cast_target_capacity_percent(tp),
+         minimum_instances: cast_minimum_instances(mi)
+       }}
     else
       {:error, %Tesla.Env{status: status}} ->
         Logger.warn("Skipping misconfigured target #{NodePool.id(pool)}. HTTP Status: #{status}")
-        nil
+        {:error, :pool_not_found}
     end
   end
 

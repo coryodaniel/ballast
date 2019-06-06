@@ -76,7 +76,7 @@ defmodule Ballast.Controller.V1.PoolPolicy do
     else
       {:error, :cooling_down} ->
         name = get_in(payload, ["metadata", "name"])
-        Logger.info("Policy '#{name}' is in cooldown.")
+        Logger.debug("Policy '#{name}' is in cooldown.")
         :ok
 
       :error ->

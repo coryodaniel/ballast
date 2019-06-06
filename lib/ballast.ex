@@ -2,6 +2,7 @@ defmodule Ballast do
   @moduledoc """
   Documentation for Ballast.
   """
+  require Logger
 
   @scopes [
     "https://www.googleapis.com/auth/compute",
@@ -13,19 +14,15 @@ defmodule Ballast do
   @default_target_capacity_percent 50
   @default_minimum_instances 1
 
-  @spec token() :: {:ok, Goth.Token.t()} | {:error, any()}
-  def token() do
-    Goth.Token.for_scope(@scopes)
-  end
-
   @spec conn() :: {:ok, Tesla.Client.t()} | {:error, any()}
   def conn() do
-    case token() do
+    case Goth.Token.for_scope(@scopes) do
       {:ok, tkn} ->
         {:ok, GoogleApi.Container.V1.Connection.new(tkn.token)}
 
-      error ->
-        error
+      {:error, error} ->
+        Ballast.log_http_error(error)
+        {:error, error}
     end
   end
 
@@ -60,5 +57,13 @@ defmodule Ballast do
     from_app = Application.get_env(:ballast, name, default)
 
     from_env || from_app
+  end
+
+  @doc false
+  @spec log_http_error(Tesla.Env.t()) :: Tesla.Env.t()
+  def log_http_error(%Tesla.Env{} = error) do
+    Logger.error("HTTP Status: #{error.status}")
+    Logger.error("HTTP Body: #{error.body}")
+    error
   end
 end
