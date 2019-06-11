@@ -18,6 +18,7 @@ defmodule Ballast.Controller.V1.PoolPolicy do
   }
 
   @rule {"", ["nodes"], ["list"]}
+  @rule {"", ["pods/eviction"], ["create"]}
 
   @doc """
   Handles an `ADDED` event
@@ -81,5 +82,10 @@ defmodule Ballast.Controller.V1.PoolPolicy do
       :error ->
         :error
     end
+  end
+
+  defp evict_from_target(target_pool_name) do
+    {:ok, pods} = Ballast.Evictor.evictable(match: target_pool_name)
+    Enum.each(pods, &Ballast.Evictor.evict/1)
   end
 end

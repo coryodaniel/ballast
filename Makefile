@@ -80,7 +80,7 @@ dev.scale.start: ## Start an nginx deployment
 
 dev.scale.up: ## Scale nginx deployment to a lot
 dev.scale.up: dev.scale.start
-	kubectl scale --replicas=500 -f ./test-scale-up.yaml
+	kubectl scale --replicas=20 -f ./test-scale-up.yaml
 
 dev.scale.down: ## Destroy nginx deployment
 	kubectl delete -f ./test-scale-up.yaml

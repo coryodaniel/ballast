@@ -11,6 +11,8 @@ spec:
     metadata:
       labels:
         app: nginx
+        ballast.bonny.run/evictable: "true"
+        # ballast.bonny.run/minimumLifetime: "60" # seconds
     spec:
       affinity:
         nodeAffinity:
@@ -39,5 +41,5 @@ spec:
             cpu: 50m
             memory: 50Mi
           requests:
-            cpu: 50m
-            memory: 50Mi
+            cpu: 25m
+            memory: 25Mi
