@@ -3,4 +3,4 @@ if Mix.env() == :dev do
 end
 
 {:ok, cluster} = K8s.Cluster.conf(:default)
-IO.puts "Using cluster: #{inspect(cluster)}"
+IO.puts("Using cluster: #{inspect(cluster)}")

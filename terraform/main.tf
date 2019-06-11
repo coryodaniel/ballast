@@ -35,7 +35,7 @@ resource "google_container_node_pool" "preemptible_nodes" {
 
   autoscaling {
     min_node_count = 1
-    max_node_count = 20
+    max_node_count = 50
   }
 
   management {
@@ -66,7 +66,7 @@ resource "google_container_node_pool" "on_demand_nodes_autoscaling" {
 
   autoscaling {
     min_node_count = 1
-    max_node_count = 10
+    max_node_count = 50
   }
 
   management {
@@ -120,8 +120,8 @@ resource "google_container_node_pool" "other" {
   initial_node_count = 3
 
   autoscaling {
-    min_node_count = 3
-    max_node_count = 5
+    min_node_count = 1
+    max_node_count = 3
   }
 
   management {

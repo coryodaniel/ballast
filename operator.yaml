@@ -1,3 +1,12 @@
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: ballast
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      k8s-app: ballast
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition

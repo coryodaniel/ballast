@@ -58,10 +58,9 @@ defmodule Ballast.Controller.V1.PoolPolicy do
     do_apply(payload)
   end
 
-  @spec log(map, atom) :: :ok
-  defp log(%{"metadata" => %{"name" => name}}, action) do
-    Logger.debug("[#{action}] PoolPolicy: #{name}")
-  end
+  @spec log(binary | map, atom) :: :ok
+  defp log(%{"metadata" => %{"name" => name}}, action), do: log(name, action)
+  defp log(name, action), do: Logger.info("[#{action}] PoolPolicy: #{name}")
 
   @spec do_apply(map) :: :ok | :error
   defp do_apply(payload) do
@@ -70,13 +69,13 @@ defmodule Ballast.Controller.V1.PoolPolicy do
          {:ok, policy} <- PoolPolicy.changesets(policy),
          :ok <- PoolPolicy.apply(policy) do
       PoolPolicy.Store.ran(policy)
-      Logger.info("Applying: #{policy.name}")
+      log(policy.name, :completed)
       Logger.debug("Changesets: #{inspect(policy.changesets)}")
       :ok
     else
       {:error, :cooling_down} ->
         name = get_in(payload, ["metadata", "name"])
-        Logger.debug("Policy '#{name}' is in cooldown.")
+        log(name, :cooldown)
         :ok
 
       :error ->

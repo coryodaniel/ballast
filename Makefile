@@ -5,6 +5,7 @@
 .PHONY: dev.scale.down dev.scale.start dev.scale.totals dev.scale.up dev.scale.where
 .PHONY: dev.start.iex dev.start.in-cluster
 .PHONY: dev.roll.autoscaling dev.roll.fixed dev.roll.preemptible
+.PHONY: dev.sourcepool.enable dev.sourcepool.disable
 
 IMAGE=quay.io/coryodaniel/ballast
 
@@ -77,9 +78,9 @@ dev.policy.delete:
 dev.scale.start: ## Start an nginx deployment
 	kubectl apply -f ./test-scale-up.yaml
 
-dev.scale.up: ## Scale nginx deployment to 250
+dev.scale.up: ## Scale nginx deployment to a lot
 dev.scale.up: dev.scale.start
-	kubectl scale --replicas=250 -f ./test-scale-up.yaml
+	kubectl scale --replicas=500 -f ./test-scale-up.yaml
 
 dev.scale.down: ## Destroy nginx deployment
 	kubectl delete -f ./test-scale-up.yaml
@@ -87,8 +88,8 @@ dev.scale.down: ## Destroy nginx deployment
 dev.scale.where: ## Show which nodes scaled nginx test is on
 	kubectl get pods -o wide --sort-by="{.spec.nodeName}" --chunk-size=0
 
-dev.scale.totals: ## Node pool to pod count
-	$(MAKE) dev.scale.where | grep -Fo -e preemptible -e autoscaling -e fixed | uniq -c
+dev.scale.totals: ## Show count of pods on node pools
+	$(MAKE) dev.scale.where | grep -Fo -e other -e preemptible -e autoscaling -e fixed | uniq -c
 
 dev.roll.autoscaling: ## Rolling replace the autoscaling (target) node pool
 dev.roll.autoscaling: _roll_cluster.autoscaling
@@ -113,3 +114,13 @@ dev.start.in-cluster: ## Deploys "latest" docker image into kubectl current cont
 	- rm manifest.yaml
 	mix bonny.gen.manifest --image ${IMAGE}
 	kubectl apply -f ./manifest.yaml
+
+SOURCE_POOL=$(shell kubectl get nodes | grep preemptible | awk '{print $$1}')
+dev.sourcepool.disable: ## Disable the source pool
+	for node in ${SOURCE_POOL} ; do (kubectl drain $$node --force --ignore-daemonsets &); done
+
+dev.sourcepool.enable: ## Enabled the source pool
+	for node in ${SOURCE_POOL} ; do (kubectl uncordon $$node &); done
+
+dev.pools.count: ## Show number of nodes in pool
+	kubectl get nodes | grep -Fo -e other -e preemptible -e autoscaling -e fixed | uniq -c
