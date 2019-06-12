@@ -31,7 +31,7 @@ resource "google_container_node_pool" "preemptible_nodes" {
   name               = "${var.gke_cluster_name}-preemptible"
   location           = "${local.location}"
   cluster            = "${google_container_cluster.main.name}"
-  initial_node_count = 5
+  initial_node_count = 1
 
   autoscaling {
     min_node_count = 1
@@ -117,7 +117,7 @@ resource "google_container_node_pool" "other" {
   name               = "${var.gke_cluster_name}-other"
   location           = "${local.location}"
   cluster            = "${google_container_cluster.main.name}"
-  initial_node_count = 3
+  initial_node_count = 1
 
   autoscaling {
     min_node_count = 1

@@ -1,5 +1,5 @@
 apiVersion: ballast.bonny.run/v1
-kind: "PoolPolicy"
+kind: PoolPolicy
 metadata:
   name: ballast-example
 spec:
@@ -8,7 +8,8 @@ spec:
   clusterName: ${cluster}
   poolName: ${source_pool}
   cooldownSeconds: 30
-  autoEvictionEnabled: true # every 120 seconds for now, given ballast.bonny.run/v1/evictAfter: SECONDS
+  # every 60 seconds for now, given ballast.bonny.run/evictableAfter: SECONDS
+  autoEvictionEnabled: true
   targetPools:
   - poolName: ${target_autoscaling_pool}
     minimumInstances: 1

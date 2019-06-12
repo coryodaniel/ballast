@@ -78,9 +78,17 @@ dev.policy.delete:
 dev.scale.start: ## Start an nginx deployment
 	kubectl apply -f ./test-scale-up.yaml
 
+dev.scale.50: ## Scale nginx to 50 replicas
+	REPLICAS=50 $(MAKE) dev.scale.up
+dev.scale.500: ## Scale nginx to 500 replicas
+	REPLICAS=500 $(MAKE) dev.scale.up
+dev.scale.1000: ## Scale nginx to 1000 replicas
+	REPLICAS=1000 $(MAKE) dev.scale.up
+
 dev.scale.up: ## Scale nginx deployment to a lot
 dev.scale.up: dev.scale.start
-	kubectl scale --replicas=20 -f ./test-scale-up.yaml
+	echo "Scaling to ${REPLICAS} replicas"
+	kubectl scale --replicas=${REPLICAS} -f ./test-scale-up.yaml
 
 dev.scale.down: ## Destroy nginx deployment
 	kubectl delete -f ./test-scale-up.yaml

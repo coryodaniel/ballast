@@ -16,7 +16,7 @@ defmodule Ballast.Evictor do
   POST /api/v1/namespaces/{namespace}/pods/{name}/eviction
   """
   @spec evict(map) :: :ok
-  def evict(pod = %{"metadata" => %{"name" => name, "namespace" => ns}}) do
+  def evict(%{"metadata" => %{"name" => name, "namespace" => ns}} = pod) do
     operation = K8s.Operation.build(:get, "v1", :pod, namespace: ns, name: name)
 
     with {:ok, base_url} <- K8s.Cluster.url_for(operation, @cluster_name),
@@ -39,7 +39,7 @@ defmodule Ballast.Evictor do
   TODO: if continue, gather all pods first and return
   """
   def candidates() do
-    operation = Client.list("v1", :pod, namespace: :all)
+    operation = Client.list("v1", "pod", namespace: :all)
     response = Client.run(operation, @cluster_name, params: pod_query())
 
     case response do

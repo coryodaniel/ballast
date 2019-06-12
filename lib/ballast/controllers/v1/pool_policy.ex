@@ -65,18 +65,24 @@ defmodule Ballast.Controller.V1.PoolPolicy do
 
   @spec do_apply(map) :: :ok | :error
   defp do_apply(payload) do
-    with {:ok, policy} <- PoolPolicy.from_resource(payload),
-         :ok <- PoolPolicy.Store.ready?(policy),
+    with {:ok, policy} <- PoolPolicy.from_resource(payload) do
+      handle_policy(policy)
+    end
+  end
+
+  @spec handle_policy(Ballast.PoolPolicy.t()) :: :ok | :error
+  defp handle_policy(%Ballast.PoolPolicy{} = policy) do
+    Enum.each(policy.targets, &evict_from_target/1)
+
+    with :ok <- PoolPolicy.Store.ready?(policy),
          {:ok, policy} <- PoolPolicy.changesets(policy),
          :ok <- PoolPolicy.apply(policy) do
       PoolPolicy.Store.ran(policy)
       log(policy.name, :completed)
-      Logger.debug("Changesets: #{inspect(policy.changesets)}")
       :ok
     else
       {:error, :cooling_down} ->
-        name = get_in(payload, ["metadata", "name"])
-        log(name, :cooldown)
+        log(policy.name, :cooldown)
         :ok
 
       :error ->
@@ -84,8 +90,10 @@ defmodule Ballast.Controller.V1.PoolPolicy do
     end
   end
 
-  defp evict_from_target(target_pool_name) do
-    {:ok, pods} = Ballast.Evictor.evictable(match: target_pool_name)
+  @spec evict_from_target(Ballast.PoolPolicy.Target.t()) :: :ok
+  defp evict_from_target(%Ballast.PoolPolicy.Target{} = target) do
+    {:ok, pods} = Ballast.Evictor.evictable(match: target.pool.name)
     Enum.each(pods, &Ballast.Evictor.evict/1)
+    :ok
   end
 end

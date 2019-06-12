@@ -12,7 +12,7 @@ spec:
       labels:
         app: nginx
         ballast.bonny.run/evictable: "true"
-        # ballast.bonny.run/minimumLifetime: "60" # seconds
+        # ballast.bonny.run/evictionMinimumLifetime: "60" # seconds
     spec:
       affinity:
         nodeAffinity:
