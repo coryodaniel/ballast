@@ -4,8 +4,8 @@ defmodule Ballast.Controller.V1.PoolPolicy do
   """
 
   use Bonny.Controller
-  require Logger
   alias Ballast.{PoolPolicy}
+  alias Ballast.Instrumentation, as: Inst
 
   @scope :cluster
   @group "ballast.bonny.run"
@@ -26,8 +26,24 @@ defmodule Ballast.Controller.V1.PoolPolicy do
   @spec add(map()) :: :ok | :error
   @impl Bonny.Controller
   def add(payload) do
-    log(payload, :add)
+    inst(payload, :added)
     do_apply(payload)
+  end
+
+  @spec inst(map | binary, atom) :: :ok
+  def inst(%{"metadata" => %{"name" => name}}, event), do: inst(name, event)
+
+  def inst(name, event) do
+    metadata = %{name: name}
+
+    case event do
+      :added -> Inst.pool_policy_added(%{}, metadata)
+      :deleted -> Inst.pool_policy_deleted(%{}, metadata)
+      :modified -> Inst.pool_policy_modified(%{}, metadata)
+      :reconciled -> Inst.pool_policy_reconciled(%{}, metadata)
+      :applied -> Inst.pool_policy_applied(%{}, metadata)
+      :backed_off -> Inst.pool_policy_backed_off(%{}, metadata)
+    end
   end
 
   @doc """
@@ -36,7 +52,7 @@ defmodule Ballast.Controller.V1.PoolPolicy do
   @spec modify(map()) :: :ok | :error
   @impl Bonny.Controller
   def modify(payload) do
-    log(payload, :modify)
+    inst(payload, :modified)
     do_apply(payload)
   end
 
@@ -46,7 +62,7 @@ defmodule Ballast.Controller.V1.PoolPolicy do
   @spec delete(map()) :: :ok | :error
   @impl Bonny.Controller
   def delete(payload) do
-    log(payload, :delete)
+    inst(payload, :deleted)
   end
 
   @doc """
@@ -55,13 +71,9 @@ defmodule Ballast.Controller.V1.PoolPolicy do
   @spec reconcile(map()) :: :ok | :error
   @impl Bonny.Controller
   def reconcile(payload) do
-    log(payload, :reconcile)
+    inst(payload, :reconciled)
     do_apply(payload)
   end
-
-  @spec log(binary | map, atom) :: :ok
-  defp log(%{"metadata" => %{"name" => name}}, action), do: log(name, action)
-  defp log(name, action), do: Logger.info("[#{action}] PoolPolicy: #{name}")
 
   @spec do_apply(map) :: :ok | :error
   defp do_apply(payload) do
@@ -72,17 +84,17 @@ defmodule Ballast.Controller.V1.PoolPolicy do
 
   @spec handle_policy(Ballast.PoolPolicy.t()) :: :ok | :error
   defp handle_policy(%Ballast.PoolPolicy{} = policy) do
-    Enum.each(policy.targets, &evict_from_target/1)
+    handle_eviction(policy)
 
     with :ok <- PoolPolicy.Store.ready?(policy),
          {:ok, policy} <- PoolPolicy.changesets(policy),
          :ok <- PoolPolicy.apply(policy) do
       PoolPolicy.Store.ran(policy)
-      log(policy.name, :completed)
+      inst(policy.name, :applied)
       :ok
     else
       {:error, :cooling_down} ->
-        log(policy.name, :cooldown)
+        inst(policy.name, :backed_off)
         :ok
 
       :error ->
@@ -90,10 +102,15 @@ defmodule Ballast.Controller.V1.PoolPolicy do
     end
   end
 
-  @spec evict_from_target(Ballast.PoolPolicy.Target.t()) :: :ok
-  defp evict_from_target(%Ballast.PoolPolicy.Target{} = target) do
-    {:ok, pods} = Ballast.Evictor.evictable(match: target.pool.name)
-    Enum.each(pods, &Ballast.Evictor.evict/1)
+  @spec handle_eviction(Ballast.PoolPolicy.t()) :: :ok
+  defp handle_eviction(%Ballast.PoolPolicy{enable_auto_eviction: true} = policy) do
+    Enum.each(policy.targets, fn target ->
+      {:ok, pods} = Ballast.Evictor.evictable(match: target.pool.name)
+      Enum.each(pods, &Ballast.Resources.Eviction.create/1)
+    end)
+
     :ok
   end
+
+  defp handle_eviction(_), do: :ok
 end

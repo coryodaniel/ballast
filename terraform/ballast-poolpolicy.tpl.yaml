@@ -8,14 +8,13 @@ spec:
   clusterName: ${cluster}
   poolName: ${source_pool}
   cooldownSeconds: 30
-  # every 60 seconds for now, given ballast.bonny.run/evictableAfter: SECONDS
-  autoEvictionEnabled: true
+  enableAutoEviction: true
   targetPools:
-  - poolName: ${target_autoscaling_pool}
+  - poolName: ${target_pool_1}
     minimumInstances: 1
-    targetCapacityPercent: 20
+    targetCapacityPercent: 25
     location: ${location}
-  - poolName: ${target_fixed_pool}
-    minimumInstances: 2
-    targetCapacityPercent: 20
+  - poolName: ${target_pool_2}
+    minimumInstances: 1
+    targetCapacityPercent: 25
     location: ${location}

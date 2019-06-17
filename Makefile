@@ -4,8 +4,8 @@
 .PHONY: dev.policy.apply dev.policy.delete
 .PHONY: dev.scale.down dev.scale.start dev.scale.totals dev.scale.up dev.scale.where
 .PHONY: dev.start.iex dev.start.in-cluster
-.PHONY: dev.roll.autoscaling dev.roll.fixed dev.roll.preemptible
-.PHONY: dev.sourcepool.enable dev.sourcepool.disable
+.PHONY: pools.roll.od-n1-1 pools.roll.od-n1-2 pools.roll.preemptible
+.PHONY: pools.sourcepool.enable pools.sourcepool.disable
 
 IMAGE=quay.io/coryodaniel/ballast
 
@@ -21,6 +21,12 @@ guard-%: # Creates an environment variable requirement by setting a prereq of gu
 
 all: ## Lints, tests, compiles, and pushes "latest" docker tag.
 all: lint test compile build push
+
+clean: ## Clean builds, dependencies, coverage reports, and docs
+	rm -rf _build
+	rm -rf deps
+	rm -rf cover
+	rm -rf doc
 
 setup: ## Setup
 
@@ -44,12 +50,6 @@ build: guard-IMAGE compile
 push: ## Release 'latest' docker image
 push: guard-IMAGE
 	docker push ${IMAGE}:latest
-
-clean: ## Clean builds, dependencies, coverage reports, and docs
-	rm -rf _build
-	rm -rf deps
-	rm -rf cover
-	rm -rf doc
 
 dev.cluster.apply: ## Create / Update development cluster
 dev.cluster.apply:
@@ -97,20 +97,7 @@ dev.scale.where: ## Show which nodes scaled nginx test is on
 	kubectl get pods -o wide --sort-by="{.spec.nodeName}" --chunk-size=0
 
 dev.scale.totals: ## Show count of pods on node pools
-	$(MAKE) dev.scale.where | grep -Fo -e other -e preemptible -e autoscaling -e fixed | uniq -c
-
-dev.roll.autoscaling: ## Rolling replace the autoscaling (target) node pool
-dev.roll.autoscaling: _roll_cluster.autoscaling
-dev.roll.fixed: ## Rolling replace the fixed (target) node pool
-dev.roll.fixed: _roll_cluster.fixed
-dev.roll.preemptible: ## Rolling replace the preemptible (source) node pool
-dev.roll.preemptible: _roll_cluster.preemptible
-
-_roll_cluster.%:
-	gcloud compute instance-groups managed list |\
-		grep gke-ballast-ballast-$* |\
-		awk '{print $$1}' |\
-		xargs -I '{}' gcloud compute instance-groups managed rolling-action replace '{}' --zone us-central1-a --max-unavailable 100 --max-surge 1
+	$(MAKE) dev.scale.where | grep -Fo -e other -e preemptible -e od-n1-1 -e od-n1-2 | uniq -c
 
 dev.start.iex: ## Deploys CRD and RBAC to kubectl current context, but runs ballast in iex
 	- rm manifest.yaml
@@ -123,12 +110,27 @@ dev.start.in-cluster: ## Deploys "latest" docker image into kubectl current cont
 	mix bonny.gen.manifest --image ${IMAGE}
 	kubectl apply -f ./manifest.yaml
 
+## Pool targets
+
 SOURCE_POOL=$(shell kubectl get nodes | grep preemptible | awk '{print $$1}')
-dev.sourcepool.disable: ## Disable the source pool
+pools.sourcepool.disable: ## Disable the source pool
 	for node in ${SOURCE_POOL} ; do (kubectl drain $$node --force --ignore-daemonsets &); done
 
-dev.sourcepool.enable: ## Enabled the source pool
+pools.sourcepool.enable: ## Enabled the source pool
 	for node in ${SOURCE_POOL} ; do (kubectl uncordon $$node &); done
 
-dev.pools.count: ## Show number of nodes in pool
-	kubectl get nodes | grep -Fo -e other -e preemptible -e autoscaling -e fixed | uniq -c
+pools.nodes.current: ## Show number of nodes in pool
+	kubectl get nodes | grep -Fo -e other -e preemptible -e od-n1-1 -e od-n1-2 | uniq -c
+
+pools.roll.od-n1-1: ## Rolling replace the od-n1-1 (target) node pool
+pools.roll.od-n1-1: _roll_pool.od-n1-1
+pools.roll.od-n1-2: ## Rolling replace the od-n1-2 (target) node pool
+pools.roll.od-n1-2: _roll_pool.od-n1-2
+pools.roll.preemptible: ## Rolling replace the preemptible (source) node pool
+pools.roll.preemptible: _roll_pool.preemptible
+
+_roll_pool.%:
+	gcloud compute instance-groups managed list |\
+		grep gke-ballast-ballast-$* |\
+		awk '{print $$1}' |\
+		xargs -I '{}' gcloud compute instance-groups managed rolling-action replace '{}' --zone us-central1-a --max-unavailable 100 --max-surge 1

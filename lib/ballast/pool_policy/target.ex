@@ -3,7 +3,6 @@ defmodule Ballast.PoolPolicy.Target do
   A target pool
   """
   alias Ballast.NodePool
-  require Logger
 
   defstruct [:pool, :minimum_instances, :target_capacity_percent]
 
@@ -39,8 +38,7 @@ defmodule Ballast.PoolPolicy.Target do
          minimum_instances: cast_minimum_instances(mi)
        }}
     else
-      {:error, %Tesla.Env{status: status}} ->
-        Logger.warn("Skipping misconfigured target #{NodePool.id(pool)}. HTTP Status: #{status}")
+      {:error, %Tesla.Env{}} ->
         {:error, :pool_not_found}
     end
   end

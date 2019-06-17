@@ -4,7 +4,6 @@ defmodule Ballast.PoolPolicyTest do
   doctest Ballast.PoolPolicy
 
   alias Ballast.{NodePool, PoolPolicy}
-  import ExUnit.CaptureLog
 
   describe "apply/1" do
     test "applies each target against it" do
@@ -48,9 +47,7 @@ defmodule Ballast.PoolPolicyTest do
     test "returns an error when it fails to GET the node pool" do
       resource = make_resource("invalid-pool")
 
-      capture_log(fn ->
-        assert {:error, _} = PoolPolicy.from_resource(resource)
-      end)
+      assert {:error, _} = PoolPolicy.from_resource(resource)
     end
   end
 
@@ -85,9 +82,7 @@ defmodule Ballast.PoolPolicyTest do
       pool = NodePool.new(resource)
       policy = %PoolPolicy{pool: pool}
 
-      capture_log(fn ->
-        assert {:error, _} = PoolPolicy.changesets(policy)
-      end)
+      assert {:error, _} = PoolPolicy.changesets(policy)
     end
   end
 

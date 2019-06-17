@@ -97,15 +97,15 @@ spec:
   poolName: my-preemptible-pool # name of the main/source pool of preemptible nodes
   cooldownSeconds: 300
   targetPools: # list of pools to scale relative to main pool
-  - poolName: my-autoscaling-pool
+  - poolName: my-on-demand-n1-standard-1-pool
     minimumInstances: 1
     targetCapacityPercent: 25
     location: us-central1-a
-  - poolName: my-fixed-pool
+  - poolName: my-on-demand-n1-standard-2-pool
     minimumInstances: 5
     targetCapacityPercent: 50
     location: us-central1-a
-  - poolName: my-other-cluster-autoscaling-pool
+  - poolName: my-other-clusters-pool
     minimumInstances: 5
     targetCapacityPercent: 50
     location: us-east4-a

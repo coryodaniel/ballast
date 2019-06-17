@@ -35,7 +35,7 @@ resource "google_container_node_pool" "preemptible_nodes" {
 
   autoscaling {
     min_node_count = 1
-    max_node_count = 50
+    max_node_count = 25
   }
 
   management {
@@ -58,15 +58,15 @@ resource "google_container_node_pool" "preemptible_nodes" {
   }
 }
 
-resource "google_container_node_pool" "on_demand_nodes_autoscaling" {
-  name               = "${var.gke_cluster_name}-autoscaling-pool"
+resource "google_container_node_pool" "od-n1-1" {
+  name               = "${var.gke_cluster_name}-od-n1-1"
   location           = "${local.location}"
   cluster            = "${google_container_cluster.main.name}"
   initial_node_count = 1
 
   autoscaling {
     min_node_count = 1
-    max_node_count = 50
+    max_node_count = 25
   }
 
   management {
@@ -88,11 +88,16 @@ resource "google_container_node_pool" "on_demand_nodes_autoscaling" {
   }
 }
 
-resource "google_container_node_pool" "on_demand_nodes_fixed" {
-  name               = "${var.gke_cluster_name}-fixed-pool"
+resource "google_container_node_pool" "od-n1-2" {
+  name               = "${var.gke_cluster_name}-od-n1-2"
   location           = "${local.location}"
   cluster            = "${google_container_cluster.main.name}"
   initial_node_count = 1
+
+  autoscaling {
+    min_node_count = 1
+    max_node_count = 25
+  }
 
   management {
     auto_repair  = true
@@ -101,7 +106,7 @@ resource "google_container_node_pool" "on_demand_nodes_fixed" {
 
   node_config {
     preemptible  = false
-    machine_type = "n1-standard-1"
+    machine_type = "n1-standard-2"
 
     metadata = {
       disable-legacy-endpoints = "true"
@@ -121,7 +126,7 @@ resource "google_container_node_pool" "other" {
 
   autoscaling {
     min_node_count = 1
-    max_node_count = 3
+    max_node_count = 5
   }
 
   management {
@@ -142,12 +147,12 @@ data "template_file" "poolpolicy-yaml" {
   template = "${file("${path.module}/ballast-poolpolicy.tpl.yaml")}"
 
   vars = {
-    project                 = "${var.gcp_project}"
-    location                = "${local.location}"
-    cluster                 = "${google_container_cluster.main.name}"
-    source_pool             = "${google_container_node_pool.preemptible_nodes.name}"
-    target_autoscaling_pool = "${google_container_node_pool.on_demand_nodes_autoscaling.name}"
-    target_fixed_pool       = "${google_container_node_pool.on_demand_nodes_fixed.name}"
+    project       = "${var.gcp_project}"
+    location      = "${local.location}"
+    cluster       = "${google_container_cluster.main.name}"
+    source_pool   = "${google_container_node_pool.preemptible_nodes.name}"
+    target_pool_1 = "${google_container_node_pool.od-n1-1.name}"
+    target_pool_2 = "${google_container_node_pool.od-n1-2.name}"
   }
 }
 

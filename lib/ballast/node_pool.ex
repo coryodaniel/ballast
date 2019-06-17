@@ -4,9 +4,8 @@ defmodule Ballast.NodePool do
   """
 
   @adapter Application.get_env(:ballast, :node_pool_adapter, Ballast.NodePool.Adapters.GKE)
-
-  require Logger
   alias Ballast.{NodePool}
+  alias Ballast.Instrumentation, as: Inst
 
   defstruct [:cluster, :instance_count, :project, :location, :name, :data]
 
@@ -54,7 +53,7 @@ defmodule Ballast.NodePool do
   @doc """
   Generates a NodePool identifier
 
-  TODO: Implement as adapter behavior
+  TODO: Implement as adapter behavior, see [#3](https://github.com/coryodaniel/ballast/issues/3)
 
   ## Example
     NodePool without response data
@@ -78,12 +77,17 @@ defmodule Ballast.NodePool do
   """
   @spec get(t, Tesla.Client.t()) :: {:ok, t} | {:error, Tesla.Env.t()}
   def get(pool, conn) do
-    case @adapter.get(pool, conn) do
+    {duration, response} = :timer.tc(@adapter, :get, [pool, conn])
+
+    case response do
       {:ok, response} ->
+        Inst.provider_get_pool_succeeded(%{duration: duration})
         node_pool = %NodePool{pool | data: response}
         {:ok, node_pool}
 
-      error ->
+      {:error, %Tesla.Env{status: status}} = error ->
+        # TODO: log pool ID
+        Inst.provider_get_pool_failed(%{duration: duration}, %{status: status})
         error
     end
   end
@@ -100,7 +104,20 @@ defmodule Ballast.NodePool do
       :ok
   """
   @spec scale(Ballast.PoolPolicy.Changeset.t(), Tesla.Client.t()) :: :ok | {:error, Tesla.Env.t()}
-  def scale(changeset, conn), do: @adapter.scale(changeset, conn)
+  def scale(changeset, conn) do
+    {duration, response} = :timer.tc(@adapter, :scale, [changeset, conn])
+
+    case response do
+      {:ok, _} ->
+        Inst.provider_scale_pool_succeeded(%{duration: duration})
+        :ok
+
+      {:error, %Tesla.Env{status: status}} = error ->
+        # TODO: log pool ID
+        Inst.provider_scale_pool_failed(%{duration: duration}, %{status: status})
+        error
+    end
+  end
 
   @doc """
   Returns the size of a pool by checking `size` from the pool's `InstanceGroupManager`
@@ -114,11 +131,16 @@ defmodule Ballast.NodePool do
   """
   @spec size(t, Tesla.Client.t()) :: {:ok, t} | {:error, Tesla.Env.t()}
   def size(%Ballast.NodePool{} = pool, conn) do
-    case @adapter.size(pool, conn) do
+    {duration, response} = :timer.tc(@adapter, :size, [pool, conn])
+
+    case response do
       {:ok, count} ->
+        Inst.provider_get_pool_size_succeeded(%{duration: duration})
         {:ok, %NodePool{pool | instance_count: count}}
 
-      error ->
+      {:error, %Tesla.Env{status: status}} = error ->
+        # TODO: log pool ID
+        Inst.provider_get_pool_size_failed(%{duration: duration}, %{status: status})
         error
     end
   end

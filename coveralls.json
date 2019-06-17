@@ -1,5 +1,9 @@
 {
   "skip_files": [
     "lib/ballast/node_pool/adapters/mock.ex"
+  ],
+  "default_stop_words": [
+    "defevent",
+    "defdelegate"
   ]
 }

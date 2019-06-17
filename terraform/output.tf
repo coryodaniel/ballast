@@ -11,11 +11,11 @@ output "gke_preemptible_pool" {
 }
 
 output "gke_on_demand_pool_autoscaling" {
-  value = "${google_container_node_pool.on_demand_nodes_autoscaling.name}"
+  value = "${google_container_node_pool.od-n1-1.name}"
 }
 
 output "gke_on_demand_pool_fixed" {
-  value = "${google_container_node_pool.on_demand_nodes_fixed.name}"
+  value = "${google_container_node_pool.od-n1-2.name}"
 }
 
 output "example_poolpolicy_yaml" {

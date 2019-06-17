@@ -4,9 +4,8 @@ defmodule Ballast.PoolPolicy do
   """
 
   alias Ballast.{NodePool, PoolPolicy}
-  require Logger
 
-  defstruct name: nil, pool: nil, targets: [], changesets: [], cooldown_seconds: nil
+  defstruct name: nil, pool: nil, targets: [], changesets: [], cooldown_seconds: nil, enable_auto_eviction: false
 
   @default_cooldown_seconds 300
 
@@ -15,6 +14,7 @@ defmodule Ballast.PoolPolicy do
           name: nil | String.t(),
           pool: NodePool.t(),
           cooldown_seconds: pos_integer,
+          enable_auto_eviction: boolean,
           targets: list(PoolPolicy.Target.t()),
           changesets: list(PoolPolicy.Changeset.t())
         }
@@ -28,13 +28,18 @@ defmodule Ballast.PoolPolicy do
 
     with {:ok, conn} <- Ballast.conn(), {:ok, pool} <- NodePool.get(pool, conn) do
       targets = make_targets(resource)
-      cooldown = get_in(resource, ["spec", "cooldownSeconds"]) || @default_cooldown_seconds
-      policy = %PoolPolicy{pool: pool, targets: targets, name: name, cooldown_seconds: cooldown}
+      cooldown_seconds = get_in(resource, ["spec", "cooldownSeconds"]) || @default_cooldown_seconds
+      enable_auto_eviction = get_in(resource, ["spec", "enableAutoEviction"]) || false
+
+      policy = %PoolPolicy{
+        pool: pool,
+        targets: targets,
+        name: name,
+        cooldown_seconds: cooldown_seconds,
+        enable_auto_eviction: enable_auto_eviction
+      }
+
       {:ok, policy}
-    else
-      {:error, %Tesla.Env{status: status} = error} ->
-        Logger.error("Could not GET source pool #{NodePool.id(pool)}. HTTP Status: #{status}")
-        {:error, error}
     end
   end
 
@@ -61,10 +66,6 @@ defmodule Ballast.PoolPolicy do
         end)
 
       {:ok, %PoolPolicy{policy | changesets: changesets}}
-    else
-      {:error, %Tesla.Env{status: status} = error} ->
-        Logger.error("Could not get source pool size #{NodePool.id(policy.pool)}. HTTP Status: #{status}")
-        {:error, error}
     end
   end
 

@@ -3,7 +3,6 @@ defmodule Ballast.PoolPolicy.TargetTest do
   use ExUnit.Case, async: true
   doctest Ballast.PoolPolicy.Target
   alias Ballast.PoolPolicy.Target
-  import ExUnit.CaptureLog
 
   describe "new/3" do
     test "gets pool data" do
@@ -50,9 +49,7 @@ defmodule Ballast.PoolPolicy.TargetTest do
         "location" => "us-central1-a"
       }
 
-      capture_log(fn ->
-        assert {:error, pool_not_found} = Target.new(spec, "my-project", "my-cluster")
-      end)
+      assert {:error, pool_not_found} = Target.new(spec, "my-project", "my-cluster")
     end
   end
 end

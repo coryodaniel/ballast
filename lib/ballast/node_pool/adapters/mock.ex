@@ -30,7 +30,7 @@ defmodule Ballast.NodePool.Adapters.Mock do
   end
 
   @impl Ballast.NodePool.Adapters
-  def scale(_, _), do: :ok
+  def scale(_, _), do: {:ok, %{}}
 
   @impl Ballast.NodePool.Adapters
   def size(%NodePool{name: "invalid-pool"}, _conn) do

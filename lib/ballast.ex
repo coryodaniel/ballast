@@ -2,7 +2,6 @@ defmodule Ballast do
   @moduledoc """
   Documentation for Ballast.
   """
-  require Logger
 
   @scopes [
     "https://www.googleapis.com/auth/compute",
@@ -21,7 +20,7 @@ defmodule Ballast do
         {:ok, GoogleApi.Container.V1.Connection.new(tkn.token)}
 
       {:error, error} ->
-        Ballast.log_http_error(error)
+        # TODO: instrument token
         {:error, error}
     end
   end
@@ -57,13 +56,5 @@ defmodule Ballast do
     from_app = Application.get_env(:ballast, name, default)
 
     from_env || from_app
-  end
-
-  @doc false
-  @spec log_http_error(Tesla.Env.t()) :: Tesla.Env.t()
-  def log_http_error(%Tesla.Env{} = error) do
-    Logger.error("HTTP Status: #{error.status}")
-    Logger.error("HTTP Body: #{error.body}")
-    error
   end
 end
