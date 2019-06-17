@@ -7,7 +7,11 @@ defmodule Ballast.NodePool.Adapters.Mock do
   alias Ballast.NodePool
 
   @impl Ballast.NodePool.Adapters
+  def id(%NodePool{} = pool) do
+    "#{pool.project}/#{pool.location}/#{pool.cluster}/#{pool.name}"
+  end
 
+  @impl Ballast.NodePool.Adapters
   def get(%NodePool{name: "invalid-pool"}, _conn) do
     {:error, %Tesla.Env{status: 403}}
   end

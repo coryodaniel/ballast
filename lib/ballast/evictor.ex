@@ -24,8 +24,8 @@ defmodule Ballast.Evictor do
         Inst.get_eviction_candidates_succeeded(measurements)
         {:ok, Map.get(response, "items")}
 
-      error ->
-        Inst.get_eviction_candidates_failed(measurements)
+      {:errror, %HTTPoison.Response{status_code: status}} = error ->
+        Inst.get_eviction_candidates_failed(measurements, %{status: status})
         error
     end
   end

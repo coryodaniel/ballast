@@ -2,6 +2,7 @@ defmodule Ballast.NodePool.Adapters.GKETest do
   use ExUnit.Case, async: true
   alias Ballast.NodePool.Adapters.GKE
   alias Ballast.NodePool
+  doctest Ballast.NodePool.Adapters.GKE
 
   @moduletag :external
 

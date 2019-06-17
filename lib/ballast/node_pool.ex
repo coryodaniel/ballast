@@ -51,22 +51,6 @@ defmodule Ballast.NodePool do
     do: %NodePool{cluster: cluster, project: project, location: location, name: name, data: data}
 
   @doc """
-  Generates a NodePool identifier
-
-  TODO: Implement as adapter behavior, see [#3](https://github.com/coryodaniel/ballast/issues/3)
-
-  ## Example
-    NodePool without response data
-      iex> pool = Ballast.NodePool.new("foo", "bar", "baz", "qux")
-      ...> Ballast.NodePool.id(pool)
-      "projects/foo/locations/bar/clusters/baz/nodePools/qux"
-  """
-  @spec id(Ballast.NodePool.t()) :: String.t()
-  def id(%NodePool{} = pool) do
-    "projects/#{pool.project}/locations/#{pool.location}/clusters/#{pool.cluster}/nodePools/#{pool.name}"
-  end
-
-  @doc """
   Gets a node pool.
 
   ## Example
@@ -77,17 +61,16 @@ defmodule Ballast.NodePool do
   """
   @spec get(t, Tesla.Client.t()) :: {:ok, t} | {:error, Tesla.Env.t()}
   def get(pool, conn) do
-    {duration, response} = :timer.tc(@adapter, :get, [pool, conn])
+    {duration, response} = :timer.tc(adapter_for(pool), :get, [pool, conn])
 
     case response do
       {:ok, response} ->
-        Inst.provider_get_pool_succeeded(%{duration: duration})
+        Inst.provider_get_pool_succeeded(%{duration: duration}, %{pool: pool.name})
         node_pool = %NodePool{pool | data: response}
         {:ok, node_pool}
 
       {:error, %Tesla.Env{status: status}} = error ->
-        # TODO: log pool ID
-        Inst.provider_get_pool_failed(%{duration: duration}, %{status: status})
+        Inst.provider_get_pool_failed(%{duration: duration}, %{status: status, pool: pool.name})
         error
     end
   end
@@ -105,16 +88,17 @@ defmodule Ballast.NodePool do
   """
   @spec scale(Ballast.PoolPolicy.Changeset.t(), Tesla.Client.t()) :: :ok | {:error, Tesla.Env.t()}
   def scale(changeset, conn) do
-    {duration, response} = :timer.tc(@adapter, :scale, [changeset, conn])
+    pool = changeset.pool
+
+    {duration, response} = :timer.tc(adapter_for(pool), :scale, [changeset, conn])
 
     case response do
       {:ok, _} ->
-        Inst.provider_scale_pool_succeeded(%{duration: duration})
+        Inst.provider_scale_pool_succeeded(%{duration: duration}, %{pool: pool.name})
         :ok
 
       {:error, %Tesla.Env{status: status}} = error ->
-        # TODO: log pool ID
-        Inst.provider_scale_pool_failed(%{duration: duration}, %{status: status})
+        Inst.provider_scale_pool_failed(%{duration: duration}, %{status: status, pool: pool.name})
         error
     end
   end
@@ -131,20 +115,24 @@ defmodule Ballast.NodePool do
   """
   @spec size(t, Tesla.Client.t()) :: {:ok, t} | {:error, Tesla.Env.t()}
   def size(%Ballast.NodePool{} = pool, conn) do
-    {duration, response} = :timer.tc(@adapter, :size, [pool, conn])
+    {duration, response} = :timer.tc(adapter_for(pool), :size, [pool, conn])
 
     case response do
       {:ok, count} ->
-        Inst.provider_get_pool_size_succeeded(%{duration: duration})
+        Inst.provider_get_pool_size_succeeded(%{duration: duration}, %{pool: pool.name})
         {:ok, %NodePool{pool | instance_count: count}}
 
       {:error, %Tesla.Env{status: status}} = error ->
-        # TODO: log pool ID
-        Inst.provider_get_pool_size_failed(%{duration: duration}, %{status: status})
+        Inst.provider_get_pool_size_failed(%{duration: duration}, %{status: status, pool: pool.name})
         error
     end
   end
 
   @spec autoscaling_enabled?(Ballast.NodePool.t()) :: boolean()
-  def autoscaling_enabled?(pool), do: @adapter.autoscaling_enabled?(pool)
+  def autoscaling_enabled?(pool), do: adapter_for(pool).autoscaling_enabled?(pool)
+
+  @doc """
+  Mocking out for multi-provider. Should take a NodePool or PoolPolicy and determine which cloud provider to use.
+  """
+  def adapter_for(_), do: @adapter
 end

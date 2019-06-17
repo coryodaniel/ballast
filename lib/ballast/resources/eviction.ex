@@ -59,11 +59,11 @@ defmodule Ballast.Resources.Eviction do
 
       case response do
         {:ok, _} = resp ->
-          Inst.eviction_succeeded(measurements, metadata)
+          Inst.pod_eviction_succeeded(measurements, metadata)
           resp
 
         error ->
-          Inst.eviction_failed(measurements, metadata)
+          Inst.pod_eviction_failed(measurements, metadata)
           error
       end
     end
