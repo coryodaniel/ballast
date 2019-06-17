@@ -2,19 +2,34 @@ defmodule Ballast.Instrumentation do
   use Notion, name: :ballast, metadata: %{}
   require Logger
 
+  @doc "Pod eviction succceeded"
   defevent([:pod, :eviction, :succeeded])
+
+  @doc "Pod eviction failed"
   defevent([:pod, :eviction, :failed])
 
+  @doc "Scaling pool minimum size from the provider API succeeded"
   defevent([:provider, :scale_pool, :succeeded])
+
+  @doc "Scaling pool minimum size from the provider API failed"
   defevent([:provider, :scale_pool, :failed])
 
+  @doc "Getting pool size from the provider API succeeded"
   defevent([:provider, :get_pool_size, :succeeded])
+
+  @doc "Getting pool size from the provider API failed"
   defevent([:provider, :get_pool_size, :failed])
 
+  @doc "Getting the pool from the provider API succeeded"
   defevent([:provider, :get_pool, :succeeded])
+
+  @doc "Getting the pool from the provider API failed"
   defevent([:provider, :get_pool, :failed])
 
+  @doc "Getting a list of eviction candidates from the k8s API succeeded"
   defevent([:get_eviction_candidates, :succeeded])
+
+  @doc "Getting a list of eviction candidates from the k8s API failed"
   defevent([:get_eviction_candidates, :failed])
 
   @doc "A new PoolPolicy resource was added"
