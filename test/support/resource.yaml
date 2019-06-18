@@ -8,8 +8,8 @@ spec:
   clusterName: my-cluster
   poolName: my-source-pool
   cooldownSeconds: 60
-  targetPools:
-  - poolName: my-target-pool
+  managedPools:
+  - poolName: my-managed-pool
     minimumInstances: 1
-    targetCapacityPercent: 30
-    location: my-target-region-or-zone
+    minimumPercent: 30
+    location: my-managed-pool-region-or-zone

@@ -14,7 +14,7 @@ defmodule Ballast.PoolPolicy do
           pool: NodePool.t(),
           cooldown_seconds: pos_integer,
           enable_auto_eviction: boolean,
-          targets: list(PoolPolicy.Target.t()),
+          targets: list(PoolPolicy.ManagedPool.t()),
           changesets: list(PoolPolicy.Changeset.t())
         }
 
@@ -53,7 +53,7 @@ defmodule Ballast.PoolPolicy do
   end
 
   @doc """
-  Generates changesets for target pools.
+  Generates changesets for managed pools.
   """
   @spec changesets(t) :: {:ok, t} | {:error, any()}
   def changesets(%PoolPolicy{targets: targets} = policy) do
@@ -69,12 +69,12 @@ defmodule Ballast.PoolPolicy do
   end
 
   # make_targets/1 removes targets that encountered errors in `Ballast.NodePool.Adapter/g2`
-  @spec make_targets(map) :: list(PoolPolicy.Target.t())
-  defp make_targets(%{"spec" => %{"targetPools" => targets}} = resource) do
+  @spec make_targets(map) :: list(PoolPolicy.ManagedPool.t())
+  defp make_targets(%{"spec" => %{"managedPools" => targets}} = resource) do
     %{"spec" => %{"projectId" => project, "clusterName" => cluster}} = resource
 
     targets
-    |> Enum.map(fn target -> PoolPolicy.Target.new(target, project, cluster) end)
+    |> Enum.map(fn target -> PoolPolicy.ManagedPool.new(target, project, cluster) end)
     |> Enum.reject(fn {status, _} -> status == :error end)
     |> Enum.map(fn {:ok, target} -> target end)
   end

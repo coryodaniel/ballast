@@ -6,8 +6,7 @@ defmodule Ballast.PoolPolicyTest do
   alias Ballast.{NodePool, PoolPolicy}
 
   describe "apply/1" do
-    test "applies each target against it" do
-    end
+    test "applies each target against it"
   end
 
   describe "from_resource/1" do
@@ -27,15 +26,15 @@ defmodule Ballast.PoolPolicyTest do
         },
         changesets: [],
         targets: [
-          %PoolPolicy.Target{
+          %PoolPolicy.ManagedPool{
             pool: %NodePool{
               cluster: "my-cluster",
               project: "my-project",
-              location: "my-target-region-or-zone",
-              name: "my-target-pool",
+              location: "my-managed-pool-region-or-zone",
+              name: "my-managed-pool",
               data: mock_data_response()
             },
-            target_capacity_percent: 30,
+            minimum_percent: 30,
             minimum_instances: 1
           }
         ]
@@ -52,7 +51,7 @@ defmodule Ballast.PoolPolicyTest do
   end
 
   describe "changesets/1" do
-    test "gets the size of the source pool and calculates target pool counts" do
+    test "gets the size of the source pool and calculates managed pool counts" do
       {:ok, policy} = PoolPolicy.from_resource(make_resource())
 
       {:ok, policy_with_changesets} = PoolPolicy.changesets(policy)
@@ -62,13 +61,13 @@ defmodule Ballast.PoolPolicyTest do
       changeset = %PoolPolicy.Changeset{
         # This is a mystery guest.
         # The NodePoolMock adapter returns a current count of 10
-        # `make_resource` below is creating a 30% target capacity
+        # `make_resource` below is creating a mocking 30% minimum
         minimum_count: 3,
         pool: %NodePool{
           cluster: "my-cluster",
           project: "my-project",
-          location: "my-target-region-or-zone",
-          name: "my-target-pool",
+          location: "my-managed-pool-region-or-zone",
+          name: "my-managed-pool",
           data: mock_data_response()
         }
       }
@@ -86,15 +85,18 @@ defmodule Ballast.PoolPolicyTest do
     end
   end
 
+  @spec make_resource() :: map()
   defp make_resource() do
     YamlElixir.read_from_file!("test/support/resource.yaml")
   end
 
+  @spec make_resource() :: map()
   defp make_resource(source_pool_name) do
     make_resource()
     |> put_in(["spec", "poolName"], source_pool_name)
   end
 
+  @spec mock_data_response() :: map()
   def mock_data_response() do
     %{
       autoscaling: %{enabled: true, maxNodeCount: 5, minNodeCount: 3},

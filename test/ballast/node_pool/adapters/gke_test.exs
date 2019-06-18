@@ -40,7 +40,7 @@ defmodule Ballast.NodePool.Adapters.GKETest do
       pool = "ballast-od-n1-2"
       node_pool = NodePool.new(project, location, cluster, pool)
 
-      target = %Ballast.PoolPolicy.Target{pool: node_pool, target_capacity_percent: 10, minimum_instances: 1}
+      target = %Ballast.PoolPolicy.ManagedPool{pool: node_pool, minimum_percent: 10, minimum_instances: 1}
       source_instance_count = 10
       changeset = Ballast.PoolPolicy.Changeset.new(target, source_instance_count)
 
@@ -55,7 +55,7 @@ defmodule Ballast.NodePool.Adapters.GKETest do
       data = %{autoscaling: %{enabled: true, maxNodeCount: 3}}
       node_pool = NodePool.new(project, location, cluster, pool, data)
 
-      target = %Ballast.PoolPolicy.Target{pool: node_pool, target_capacity_percent: 10, minimum_instances: 1}
+      target = %Ballast.PoolPolicy.ManagedPool{pool: node_pool, minimum_percent: 10, minimum_instances: 1}
       source_instance_count = 10
       changeset = Ballast.PoolPolicy.Changeset.new(target, source_instance_count)
 

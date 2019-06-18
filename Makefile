@@ -110,7 +110,7 @@ dev.start.in-cluster: ## Deploys "latest" docker image into kubectl current cont
 	mix bonny.gen.manifest --image ${IMAGE}
 	kubectl apply -f ./manifest.yaml
 
-## Pool targets
+## Managed Pools
 
 SOURCE_POOL=$(shell kubectl get nodes | grep preemptible | awk '{print $$1}')
 pools.sourcepool.disable: ## Disable the source pool
@@ -122,9 +122,9 @@ pools.sourcepool.enable: ## Enabled the source pool
 pools.nodes.current: ## Show number of nodes in pool
 	kubectl get nodes | grep -Fo -e other -e preemptible -e od-n1-1 -e od-n1-2 | uniq -c
 
-pools.roll.od-n1-1: ## Rolling replace the od-n1-1 (target) node pool
+pools.roll.od-n1-1: ## Rolling replace the od-n1-1 managed node pool
 pools.roll.od-n1-1: _roll_pool.od-n1-1
-pools.roll.od-n1-2: ## Rolling replace the od-n1-2 (target) node pool
+pools.roll.od-n1-2: ## Rolling replace the od-n1-2 managed node pool
 pools.roll.od-n1-2: _roll_pool.od-n1-2
 pools.roll.preemptible: ## Rolling replace the preemptible (source) node pool
 pools.roll.preemptible: _roll_pool.preemptible
