@@ -2,12 +2,7 @@ defmodule Ballast.PoolPolicyTest do
   @moduledoc false
   use ExUnit.Case, async: true
   doctest Ballast.PoolPolicy
-
   alias Ballast.{NodePool, PoolPolicy}
-
-  describe "apply/1" do
-    test "applies each target against it"
-  end
 
   describe "from_resource/1" do
     test "parses a valid resource" do
@@ -25,7 +20,7 @@ defmodule Ballast.PoolPolicyTest do
           data: mock_data_response()
         },
         changesets: [],
-        targets: [
+        managed_pools: [
           %PoolPolicy.ManagedPool{
             pool: %NodePool{
               cluster: "my-cluster",

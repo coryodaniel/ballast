@@ -13,8 +13,8 @@ defmodule Ballast.PoolPolicy.ManagedPoolTest do
         "location" => "us-central1-a"
       }
 
-      {:ok, target} = ManagedPool.new(spec, "my-project", "my-cluster")
-      assert %Ballast.NodePool{} = target.pool
+      {:ok, managed_pool} = ManagedPool.new(spec, "my-project", "my-cluster")
+      assert %Ballast.NodePool{} = managed_pool.pool
     end
 
     test "formats minimum_percent" do
@@ -25,8 +25,8 @@ defmodule Ballast.PoolPolicy.ManagedPoolTest do
         "location" => "us-central1-a"
       }
 
-      {:ok, target} = ManagedPool.new(spec, "my-project", "my-cluster")
-      assert target.minimum_percent == 30
+      {:ok, managed_pool} = ManagedPool.new(spec, "my-project", "my-cluster")
+      assert managed_pool.minimum_percent == 30
     end
 
     test "formats minimum_instances" do
@@ -37,8 +37,8 @@ defmodule Ballast.PoolPolicy.ManagedPoolTest do
         "location" => "us-central1-a"
       }
 
-      {:ok, target} = ManagedPool.new(spec, "my-project", "my-cluster")
-      assert target.minimum_instances == 2
+      {:ok, managed_pool} = ManagedPool.new(spec, "my-project", "my-cluster")
+      assert managed_pool.minimum_instances == 2
     end
 
     test "returns nil when the pool cannot be found" do

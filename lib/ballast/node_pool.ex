@@ -81,9 +81,9 @@ defmodule Ballast.NodePool do
 
   ## Examples
       iex> node_pool = Ballast.NodePool.new("my-proj", "my-loc", "my-cluster", "my-pool")
-      ...> target = %Ballast.PoolPolicy.ManagedPool{pool: node_pool, minimum_percent: 30, minimum_instances: 1}
+      ...> managed_pool = %Ballast.PoolPolicy.ManagedPool{pool: node_pool, minimum_percent: 30, minimum_instances: 1}
       ...> source_instance_count = 10
-      ...> changeset = Ballast.PoolPolicy.Changeset.new(target, source_instance_count)
+      ...> changeset = Ballast.PoolPolicy.Changeset.new(managed_pool, source_instance_count)
       ...> Ballast.NodePool.scale(changeset, Ballast.conn())
       :ok
   """

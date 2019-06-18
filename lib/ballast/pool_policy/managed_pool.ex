@@ -13,20 +13,20 @@ defmodule Ballast.PoolPolicy.ManagedPool do
         }
 
   @doc """
-  Parse resource `target` spec and annotate with `NodePool` data from API.
+  Parse resource `managed_pool` spec and annotate with `NodePool` data from API.
   """
   @spec new(map(), binary(), binary()) :: {:ok, t()} | {:error, atom}
-  def new(target_spec, project, source_cluster) do
+  def new(managed_pool_spec, project, source_cluster) do
     %{
       "minimumPercent" => mp,
       "minimumInstances" => mi,
       "poolName" => name,
       "location" => location
-    } = target_spec
+    } = managed_pool_spec
 
     # Support managed pools in different clusters than the source pool's cluster.
     # If not set then the pool is expected to be the in the source pool's cluster
-    cluster = Map.get(target_spec, "clusterName", source_cluster)
+    cluster = Map.get(managed_pool_spec, "clusterName", source_cluster)
 
     pool = NodePool.new(project, location, cluster, name)
 

@@ -16,15 +16,17 @@ defmodule Ballast.PoolPolicy.Changeset do
   Creates a new `Changeset` given a `Ballast.PoolPolicy.ManagedPool` and a current source pool instance count.
 
   ## Examples
-      iex> target = %Ballast.PoolPolicy.ManagedPool{minimum_percent: 30, minimum_instances: 1}
+      iex> managed_pool = %Ballast.PoolPolicy.ManagedPool{minimum_percent: 30, minimum_instances: 1}
       iex> source_count = 10
-      ...> Ballast.PoolPolicy.Changeset.new(target, source_count)
+      ...> Ballast.PoolPolicy.Changeset.new(managed_pool, source_count)
       %Ballast.PoolPolicy.Changeset{minimum_count: 3}
   """
   @spec new(PoolPolicy.ManagedPool.t(), integer) :: t
-  def new(target, source_count) do
-    new_minimum_count = calc_new_minimum_count(source_count, target.minimum_percent, target.minimum_instances)
-    %PoolPolicy.Changeset{pool: target.pool, minimum_count: new_minimum_count}
+  def new(managed_pool, source_count) do
+    new_minimum_count =
+      calc_new_minimum_count(source_count, managed_pool.minimum_percent, managed_pool.minimum_instances)
+
+    %PoolPolicy.Changeset{pool: managed_pool.pool, minimum_count: new_minimum_count}
   end
 
   @doc """
@@ -52,5 +54,5 @@ defmodule Ballast.PoolPolicy.Changeset do
   defp do_calc_new_minimum_count(new_minimum_count, minimum_instances) when new_minimum_count > minimum_instances,
     do: new_minimum_count
 
-  defp do_calc_new_minimum_count(_, minimum), do: minimum_instances
+  defp do_calc_new_minimum_count(_, minimum_instances), do: minimum_instances
 end
