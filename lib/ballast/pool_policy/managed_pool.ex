@@ -1,32 +1,32 @@
-defmodule Ballast.PoolPolicy.Target do
+defmodule Ballast.PoolPolicy.ManagedPool do
   @moduledoc """
-  A target pool
+  A managed pool
   """
   alias Ballast.NodePool
 
-  defstruct [:pool, :minimum_instances, :target_capacity_percent]
+  defstruct [:pool, :minimum_instances, :minimum_percent]
 
   @type t :: %__MODULE__{
           pool: NodePool.t(),
-          target_capacity_percent: pos_integer,
+          minimum_percent: pos_integer,
           minimum_instances: pos_integer
         }
 
   @doc """
-  Parse resource `target` spec and annotate with `NodePool` data from API.
+  Parse resource `managed_pool` spec and annotate with `NodePool` data from API.
   """
   @spec new(map(), binary(), binary()) :: {:ok, t()} | {:error, atom}
-  def new(target_spec, project, source_cluster) do
+  def new(managed_pool_spec, project, source_cluster) do
     %{
-      "targetCapacityPercent" => tp,
+      "minimumPercent" => mp,
       "minimumInstances" => mi,
       "poolName" => name,
       "location" => location
-    } = target_spec
+    } = managed_pool_spec
 
-    # Support target pools in different clusters than the source pool's cluster.
+    # Support managed pools in different clusters than the source pool's cluster.
     # If not set then the pool is expected to be the in the source pool's cluster
-    cluster = Map.get(target_spec, "clusterName", source_cluster)
+    cluster = Map.get(managed_pool_spec, "clusterName", source_cluster)
 
     pool = NodePool.new(project, location, cluster, name)
 
@@ -34,7 +34,7 @@ defmodule Ballast.PoolPolicy.Target do
       {:ok,
        %__MODULE__{
          pool: pool,
-         target_capacity_percent: cast_target_capacity_percent(tp),
+         minimum_percent: cast_minimum_percent(mp),
          minimum_instances: cast_minimum_instances(mi)
        }}
     else
@@ -43,10 +43,10 @@ defmodule Ballast.PoolPolicy.Target do
     end
   end
 
-  @spec cast_target_capacity_percent(String.t() | pos_integer) :: pos_integer
-  defp cast_target_capacity_percent(tp) when is_integer(tp), do: tp
-  defp cast_target_capacity_percent(tp) when is_binary(tp), do: String.to_integer(tp)
-  defp cast_target_capacity_percent(_), do: Ballast.default_target_capacity_percent()
+  @spec cast_minimum_percent(String.t() | pos_integer) :: pos_integer
+  defp cast_minimum_percent(mp) when is_integer(mp), do: mp
+  defp cast_minimum_percent(mp) when is_binary(mp), do: String.to_integer(mp)
+  defp cast_minimum_percent(_), do: Ballast.default_minimum_percent()
 
   @spec cast_minimum_instances(String.t() | pos_integer) :: pos_integer
   defp cast_minimum_instances(mi) when is_integer(mi), do: mi

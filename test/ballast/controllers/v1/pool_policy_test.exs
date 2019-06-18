@@ -3,6 +3,7 @@ defmodule Ballast.Controller.V1.PoolPolicyTest do
   use ExUnit.Case, async: true
   alias Ballast.Controller.V1.PoolPolicy
 
+  @spec make_resource() :: map()
   defp make_resource() do
     YamlElixir.read_from_file!("test/support/resource.yaml")
   end

@@ -151,8 +151,8 @@ data "template_file" "poolpolicy-yaml" {
     location      = "${local.location}"
     cluster       = "${google_container_cluster.main.name}"
     source_pool   = "${google_container_node_pool.preemptible_nodes.name}"
-    target_pool_1 = "${google_container_node_pool.od-n1-1.name}"
-    target_pool_2 = "${google_container_node_pool.od-n1-2.name}"
+    managed_pool_1 = "${google_container_node_pool.od-n1-1.name}"
+    managed_pool_2 = "${google_container_node_pool.od-n1-2.name}"
   }
 }
 

@@ -83,7 +83,7 @@ kubectl apply -f ./operator.yaml
 
 ### Example `PoolPolicy`
 
-Ballast requires that all node-pools be created in advanced. Ballast only scales *target* pools' _minimum count_ (or _current size_ in the case autoscaling is disabled) to match the required minimums of the *source* pool.
+Ballast requires that all node-pools be created in advanced. Ballast only scales *managed* pools' _minimum count_ (or _current size_ in the case autoscaling is disabled) to match the required minimums of the *source* pool.
 
 ```yaml
 apiVersion: ballast.bonny.run/v1
@@ -96,23 +96,23 @@ spec:
   clusterName: your-cluster-name
   poolName: my-preemptible-pool # name of the main/source pool of preemptible nodes
   cooldownSeconds: 300
-  targetPools: # list of pools to scale relative to main pool
+  managedPools: # list of pools to scale relative to main pool
   - poolName: my-on-demand-n1-standard-1-pool
     minimumInstances: 1
-    targetCapacityPercent: 25
+    minimumPercent: 25
     location: us-central1-a
   - poolName: my-on-demand-n1-standard-2-pool
     minimumInstances: 5
-    targetCapacityPercent: 50
+    minimumPercent: 50
     location: us-central1-a
   - poolName: my-other-clusters-pool
     minimumInstances: 5
-    targetCapacityPercent: 50
+    minimumPercent: 50
     location: us-east4-a
     clusterName: my-other-cluster # supports scaling node-pools in other clusters
 ```
 
-Multiple target pools can be specified. A mix of autoscaling and fixed size pools can be used, as well as pools of different instance types/sizes.
+Multiple managed pools can be specified. A mix of autoscaling and fixed size pools can be used, as well as pools of different instance types/sizes.
 
 ### Optimizing costs with preemptible pools and node affinity
 
@@ -149,7 +149,7 @@ Ballast is built with the [bonny operator framework](https://github.com/coryodan
 
 [Terraform](https://terraform.io) is used to provision test clusters.
 
-A number of make targets exist to aid in development and testing:
+A number of make commands exist to aid in development and testing:
 
 ```shell
 make help

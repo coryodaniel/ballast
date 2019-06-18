@@ -9,12 +9,12 @@ spec:
   poolName: ${source_pool}
   cooldownSeconds: 30
   enableAutoEviction: true
-  targetPools:
-  - poolName: ${target_pool_1}
+  managedPools:
+  - poolName: ${managed_pool_1}
     minimumInstances: 1
-    targetCapacityPercent: 25
+    minimumPercent: 25
     location: ${location}
-  - poolName: ${target_pool_2}
+  - poolName: ${managed_pool_2}
     minimumInstances: 1
-    targetCapacityPercent: 25
+    minimumPercent: 25
     location: ${location}

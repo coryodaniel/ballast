@@ -10,7 +10,7 @@ defmodule Ballast do
 
   @scopes Enum.join(@scopes, " ")
 
-  @default_target_capacity_percent 50
+  @default_minimum_percent 50
   @default_minimum_instances 1
 
   @spec conn() :: {:ok, Tesla.Client.t()} | {:error, any()}
@@ -20,25 +20,24 @@ defmodule Ballast do
         {:ok, GoogleApi.Container.V1.Connection.new(tkn.token)}
 
       {:error, error} ->
-        # TODO: instrument token
         {:error, error}
     end
   end
 
   @doc """
-  Get the default target capacity percent for target pools.
+  Get the default minimum percent for managed pools.
 
   ## Example
-      iex> Ballast.default_target_capacity_percent()
+      iex> Ballast.default_minimum_percent()
       50
   """
-  @spec default_target_capacity_percent() :: pos_integer
-  def default_target_capacity_percent() do
-    get_config_value(:default_target_capacity_percent, @default_target_capacity_percent)
+  @spec default_minimum_percent() :: pos_integer
+  def default_minimum_percent() do
+    get_config_value(:default_minimum_percent, @default_minimum_percent)
   end
 
   @doc """
-  Get the default minimum instances for target pools.
+  Get the default minimum instances for managed pools.
 
   ## Example
       iex> Ballast.default_minimum_instances()

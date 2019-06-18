@@ -62,15 +62,16 @@ defmodule Ballast.NodePool do
   @spec get(t, Tesla.Client.t()) :: {:ok, t} | {:error, Tesla.Env.t()}
   def get(pool, conn) do
     {duration, response} = :timer.tc(adapter_for(pool), :get, [pool, conn])
+    measurements = %{duration: duration}
 
     case response do
       {:ok, response} ->
-        Inst.provider_get_pool_succeeded(%{duration: duration}, %{pool: pool.name})
+        Inst.provider_get_pool_succeeded(measurements, %{pool: pool.name})
         node_pool = %NodePool{pool | data: response}
         {:ok, node_pool}
 
       {:error, %Tesla.Env{status: status}} = error ->
-        Inst.provider_get_pool_failed(%{duration: duration}, %{status: status, pool: pool.name})
+        Inst.provider_get_pool_failed(measurements, %{status: status, pool: pool.name})
         error
     end
   end
@@ -80,9 +81,9 @@ defmodule Ballast.NodePool do
 
   ## Examples
       iex> node_pool = Ballast.NodePool.new("my-proj", "my-loc", "my-cluster", "my-pool")
-      ...> target = %Ballast.PoolPolicy.Target{pool: node_pool, target_capacity_percent: 30, minimum_instances: 1}
+      ...> managed_pool = %Ballast.PoolPolicy.ManagedPool{pool: node_pool, minimum_percent: 30, minimum_instances: 1}
       ...> source_instance_count = 10
-      ...> changeset = Ballast.PoolPolicy.Changeset.new(target, source_instance_count)
+      ...> changeset = Ballast.PoolPolicy.Changeset.new(managed_pool, source_instance_count)
       ...> Ballast.NodePool.scale(changeset, Ballast.conn())
       :ok
   """
@@ -91,14 +92,15 @@ defmodule Ballast.NodePool do
     pool = changeset.pool
 
     {duration, response} = :timer.tc(adapter_for(pool), :scale, [changeset, conn])
+    measurements = %{duration: duration}
 
     case response do
       {:ok, _} ->
-        Inst.provider_scale_pool_succeeded(%{duration: duration}, %{pool: pool.name})
+        Inst.provider_scale_pool_succeeded(measurements, %{pool: pool.name})
         :ok
 
       {:error, %Tesla.Env{status: status}} = error ->
-        Inst.provider_scale_pool_failed(%{duration: duration}, %{status: status, pool: pool.name})
+        Inst.provider_scale_pool_failed(measurements, %{status: status, pool: pool.name})
         error
     end
   end
@@ -116,14 +118,15 @@ defmodule Ballast.NodePool do
   @spec size(t, Tesla.Client.t()) :: {:ok, t} | {:error, Tesla.Env.t()}
   def size(%Ballast.NodePool{} = pool, conn) do
     {duration, response} = :timer.tc(adapter_for(pool), :size, [pool, conn])
+    measurements = %{duration: duration}
 
     case response do
       {:ok, count} ->
-        Inst.provider_get_pool_size_succeeded(%{duration: duration}, %{pool: pool.name})
+        Inst.provider_get_pool_size_succeeded(measurements, %{pool: pool.name})
         {:ok, %NodePool{pool | instance_count: count}}
 
       {:error, %Tesla.Env{status: status}} = error ->
-        Inst.provider_get_pool_size_failed(%{duration: duration}, %{status: status, pool: pool.name})
+        Inst.provider_get_pool_size_failed(measurements, %{status: status, pool: pool.name})
         error
     end
   end
@@ -134,5 +137,6 @@ defmodule Ballast.NodePool do
   @doc """
   Mocking out for multi-provider. Should take a NodePool or PoolPolicy and determine which cloud provider to use.
   """
+  @spec adapter_for(Ballast.NodePool.t()) :: module()
   def adapter_for(_), do: @adapter
 end

@@ -86,10 +86,10 @@ defmodule Ballast.Controller.V1.PoolPolicy do
   defp handle_policy(%Ballast.PoolPolicy{} = policy) do
     handle_eviction(policy)
 
-    with :ok <- PoolPolicy.Store.ready?(policy),
+    with :ok <- PoolPolicy.CooldownCache.ready?(policy),
          {:ok, policy} <- PoolPolicy.changesets(policy),
          :ok <- PoolPolicy.apply(policy) do
-      PoolPolicy.Store.ran(policy)
+      PoolPolicy.CooldownCache.ran(policy)
       inst(policy.name, :applied)
       :ok
     else
@@ -104,8 +104,8 @@ defmodule Ballast.Controller.V1.PoolPolicy do
 
   @spec handle_eviction(Ballast.PoolPolicy.t()) :: :ok
   defp handle_eviction(%Ballast.PoolPolicy{enable_auto_eviction: true} = policy) do
-    Enum.each(policy.targets, fn target ->
-      {:ok, pods} = Ballast.Evictor.evictable(match: target.pool.name)
+    Enum.each(policy.managed_pools, fn managed_pool ->
+      {:ok, pods} = Ballast.Evictor.evictable(match: managed_pool.pool.name)
       Enum.each(pods, &Ballast.Resources.Eviction.create/1)
     end)
 
