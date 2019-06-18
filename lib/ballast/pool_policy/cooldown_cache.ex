@@ -1,4 +1,4 @@
-defmodule Ballast.PoolPolicy.Store do
+defmodule Ballast.PoolPolicy.CooldownCache do
   @moduledoc """
   Cooldown tracking for `Ballast.PoolPolicy`
   """

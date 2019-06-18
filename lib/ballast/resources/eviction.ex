@@ -3,6 +3,7 @@ defmodule Ballast.Resources.Eviction do
   Encapsulates a Kubernetes [`Eviction` resource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#create-eviction-pod-v1-core)
 
   ## Links
+
   * [Eviction API](https://kubernetes.io/docs/tasks/administer-cluster/safely-drain-node/#the-eviction-api)
   """
 

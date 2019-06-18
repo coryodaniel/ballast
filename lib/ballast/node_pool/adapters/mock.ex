@@ -1,3 +1,4 @@
+# credo:disable-for-this-file
 defmodule Ballast.NodePool.Adapters.Mock do
   @moduledoc false
 
@@ -16,12 +17,14 @@ defmodule Ballast.NodePool.Adapters.Mock do
     {:error, %Tesla.Env{status: 403}}
   end
 
+  @impl Ballast.NodePool.Adapters
   def get(%NodePool{name: "pool-without-autoscaling"}, _conn) do
     {:ok, pool} = get(nil, nil)
     pool_without_autoscaling = Map.delete(pool, :autoscaling)
     {:ok, pool_without_autoscaling}
   end
 
+  @impl Ballast.NodePool.Adapters
   def get(_pool, _conn) do
     pool =
       @list_json
@@ -41,6 +44,7 @@ defmodule Ballast.NodePool.Adapters.Mock do
     {:error, %Tesla.Env{status: 403}}
   end
 
+  @impl Ballast.NodePool.Adapters
   def size(_, _), do: {:ok, 10}
 
   @impl Ballast.NodePool.Adapters

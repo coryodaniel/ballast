@@ -14,6 +14,7 @@ defmodule Ballast.Evictor do
   Gets all pods with eviction enabled.
   TODO: if continue, gather all pods first and return
   """
+  @spec candidates() :: {:ok, map} | {:error, HTTPoison.Response.t()}
   def candidates() do
     operation = Client.list("v1", "pod", namespace: :all)
     {duration, response} = :timer.tc(Client, :run, [operation, @cluster_name, params: pod_query()])
@@ -30,17 +31,17 @@ defmodule Ballast.Evictor do
     end
   end
 
-  def evictable() do
-    with {:ok, candidates} <- candidates(),
-         pods <- Enum.filter(candidates, &pod_started_before/1) do
-      {:ok, pods}
-    end
-  end
+  @doc """
+  Get a list of evictable pods on the given node pool.
 
+  Filters `candidates/0` by `pod_started_before/1` and `pod_spec_node_name_matches/2`
+  """
+  @spec evictable(keyword(match: binary())) :: {:ok, list(map)} | {:error, HTTPoison.Response.t()}
   def evictable(match: pattern) do
-    with {:ok, candidates} <- evictable(),
-         pods <- Enum.filter(candidates, &pod_spec_node_name_matches(&1, pattern)) do
-      {:ok, pods}
+    with {:ok, candidates} <- candidates(),
+         pods_started_before <- Enum.filter(candidates, &pod_started_before/1),
+         pods_matching_pattern <- Enum.filter(pods_started_before, &pod_spec_node_name_matches(&1, pattern)) do
+      {:ok, pods_matching_pattern}
     end
   end
 
@@ -54,6 +55,7 @@ defmodule Ballast.Evictor do
       iex> Ballast.Evictor.pod_spec_node_name_matches(%{"spec" => %{"nodeName" => "cloud-cool-pool-65678"}}, "uncool-pool")
       false
   """
+  @spec pod_spec_node_name_matches(map(), binary()) :: boolean()
   def pod_spec_node_name_matches(%{"spec" => %{"nodeName" => name}}, substring), do: String.contains?(name, substring)
   def pod_spec_node_name_matches(_, _), do: false
 
@@ -86,6 +88,7 @@ defmodule Ballast.Evictor do
 
   def pod_started_before(_), do: false
 
+  @spec parse_seconds(binary() | pos_integer() | {pos_integer(), term()}) :: pos_integer()
   defp parse_seconds(sec) when is_binary(sec), do: sec |> Integer.parse() |> parse_seconds
   defp parse_seconds(sec) when is_integer(sec), do: sec
   defp parse_seconds({sec, _}), do: sec

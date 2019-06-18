@@ -1,4 +1,5 @@
 defmodule Ballast.Instrumentation do
+  @moduledoc false
   use Notion, name: :ballast, metadata: %{}
   require Logger
 

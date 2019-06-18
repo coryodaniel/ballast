@@ -20,7 +20,6 @@ defmodule Ballast do
         {:ok, GoogleApi.Container.V1.Connection.new(tkn.token)}
 
       {:error, error} ->
-        # TODO: instrument token
         {:error, error}
     end
   end

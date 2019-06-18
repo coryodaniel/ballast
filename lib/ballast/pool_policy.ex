@@ -2,12 +2,11 @@ defmodule Ballast.PoolPolicy do
   @moduledoc """
   Internal representation of `Ballast.Controller.V1.PoolPolicy` custom resource.
   """
+  @default_cooldown_seconds 300
 
   alias Ballast.{NodePool, PoolPolicy}
 
   defstruct name: nil, pool: nil, targets: [], changesets: [], cooldown_seconds: nil, enable_auto_eviction: false
-
-  @default_cooldown_seconds 300
 
   @typedoc "PoolPolicy"
   @type t :: %__MODULE__{

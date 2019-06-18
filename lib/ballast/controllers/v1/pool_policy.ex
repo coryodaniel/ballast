@@ -86,10 +86,10 @@ defmodule Ballast.Controller.V1.PoolPolicy do
   defp handle_policy(%Ballast.PoolPolicy{} = policy) do
     handle_eviction(policy)
 
-    with :ok <- PoolPolicy.Store.ready?(policy),
+    with :ok <- PoolPolicy.CooldownCache.ready?(policy),
          {:ok, policy} <- PoolPolicy.changesets(policy),
          :ok <- PoolPolicy.apply(policy) do
-      PoolPolicy.Store.ran(policy)
+      PoolPolicy.CooldownCache.ran(policy)
       inst(policy.name, :applied)
       :ok
     else
