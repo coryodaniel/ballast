@@ -55,8 +55,8 @@ defmodule Ballast.Resources.Eviction do
 
       {duration, response} = :timer.tc(HTTPoison, :post, [url, body, headers, options])
 
-      metadata = %{node: pod["spec"]["nodeName"], pod: name}
       measurements = %{duration: duration}
+      metadata = %{node: pod["spec"]["nodeName"], pod: name}
 
       case response do
         {:ok, _} = resp ->

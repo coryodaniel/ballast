@@ -18,6 +18,7 @@ defmodule Ballast.Controller.V1.PoolPolicy do
   }
 
   @rule {"", ["nodes"], ["list"]}
+  @rule {"", ["pods"], ["list"]}
   @rule {"", ["pods/eviction"], ["create"]}
 
   @doc """
@@ -112,5 +113,7 @@ defmodule Ballast.Controller.V1.PoolPolicy do
     :ok
   end
 
-  defp handle_eviction(_), do: :ok
+  defp handle_eviction(_) do
+    :ok
+  end
 end

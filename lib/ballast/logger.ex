@@ -5,21 +5,21 @@ defmodule Ballast.Logger do
 
   require Logger
 
-  @spec attach() :: :ok
+  @spec attach(boolean) :: :ok
   @doc """
   Attaches telemetry events to the Elixir Logger
 
   Set `BALLAST_DEBUG=true` to enable debug logging.
   """
-  def attach() do
-    case System.get_env("BALLAST_DEBUG") do
-      "true" ->
-        attach_ballast()
-        attach_bonny()
+  def attach(enable_debugging)
 
-      _ ->
-        attach_ballast()
-    end
+  def attach(true) do
+    attach_ballast()
+    attach_bonny()
+  end
+
+  def attach(_) do
+    attach_ballast()
   end
 
   @doc false
@@ -38,13 +38,13 @@ defmodule Ballast.Logger do
 
   @spec attach_bonny() :: :ok
   defp attach_bonny() do
-    bonny = Bonny.Telemetry.events()
-    :telemetry.attach_many("bonny-instrumentation-logger", bonny, &log_handler/4, :debug)
+    events = Bonny.Telemetry.events()
+    :telemetry.attach_many("bonny-instrumentation-logger", events, &log_handler/4, :debug)
   end
 
   @spec attach_ballast() :: :ok
   defp attach_ballast() do
-    ballast = Ballast.Instrumentation.events()
-    :telemetry.attach_many("ballast-instrumentation-logger", ballast, &log_handler/4, :info)
+    events = Ballast.Instrumentation.events()
+    :telemetry.attach_many("ballast-instrumentation-logger", events, &log_handler/4, :info)
   end
 end

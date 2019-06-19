@@ -46,8 +46,11 @@ defmodule Ballast.MixProject do
       {:notion, "~> 0.2"},
 
       # Metrics
-      {:telemetry, "~> 0.4.0"},
+      {:telemetry, "~> 0.4"},
+      {:telemetry_metrics, "~> 0.3"},
+      {:telemetry_metrics_prometheus, "~> 0.1"},
       {:prometheus_ex, "~> 3.0"},
+      {:plug_cowboy, "~> 2.0"},
       {:prometheus_plugs, "~> 1.1.1"},
 
       # GoogleApi requires Poison 3, but doesnt include it in its deps :(

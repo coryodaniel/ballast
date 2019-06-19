@@ -1,0 +1,9 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ballast-metrics-ingress
+  namespace: default
+spec:
+  backend:
+    serviceName: ballast
+    servicePort: 8080

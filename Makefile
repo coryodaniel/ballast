@@ -60,11 +60,11 @@ dev.cluster.delete: ## Delete development cluster
 	cd terraform && terraform destroy -var-file=terraform.tfvars
 
 operator.apply: ## Run operator.yaml in kubectl current context using the latest docker image
-	-@kubectl delete -f ./operator.yaml
-	kubectl apply -f ./operator.yaml
+	-@kubectl delete -f ./manifests/operator.yaml
+	kubectl apply -f ./manifests/operator.yaml
 
 operator.delete: ## Delete the operator in kubectl current context
-	kubectl delete -f ./operator.yaml
+	kubectl delete -f ./manifests/operator.yaml
 
 dev.policy.apply: ## Create / Update example PoolPolicy
 dev.policy.apply:
@@ -109,6 +109,10 @@ dev.start.in-cluster: ## Deploys "latest" docker image into kubectl current cont
 	- rm manifest.yaml
 	mix bonny.gen.manifest --image ${IMAGE}
 	kubectl apply -f ./manifest.yaml
+
+dev.svc.forward: ## Forward the remote k8s ballast service to localhost
+	kubectl port-forward service/ballast 8080:8080
+
 
 ## Managed Pools
 

@@ -9,6 +9,7 @@ It is particularly useful for running **preemptible** node pools with _on demand
     - [Create a GCP Service Account](#create-a-gcp-service-account)
     - [Create a Kubernetes Secret w/ the GCP Service Account Keys](#create-a-kubernetes-secret-w-the-gcp-service-account-keys)
     - [Deploy the operator](#deploy-the-operator)
+      - [Environment Variables](#environment-variables)
   - [Managing Ballast PoolPolicies](#managing-ballast-poolpolicies)
     - [Example `PoolPolicy`](#example-poolpolicy)
     - [Optimizing costs with preemptible pools and node affinity](#optimizing-costs-with-preemptible-pools-and-node-affinity)
@@ -71,13 +72,21 @@ rm /tmp/ballast-keys.json
 
 ### Deploy the operator
 
-[`operator.yaml`](./operator.yaml) is a pre-built manifest that expects `secret/ballast-operator-sa-keys` to exist in the same namespace.
+[`operator.yaml`](./manifests/operator.yaml) is a pre-built manifest that expects `secret/ballast-operator-sa-keys` to exist in the same namespace.
 
 ```shell
-kubectl apply -f ./operator.yaml
+kubectl apply -f ./manifests/operator.yaml
 ```
 
+The operator exposes prometheus metrics on port 8080 at `/metrics`.
+
 **Note:** In the [`Makefile`](./Makefile) you'll see references to `manifest.yaml` and `operator.yaml`. `manifest.yaml` is an operator manifest created for development and testing. `operator.yaml` is the current stable operator release.
+
+#### Environment Variables
+
+- `BALLAST_METRICS_PORT`=8080
+- `BALLAST_DEBUG`=true
+- `GOOGLE_APPLICATION_CREDENTIALS`=/abs/path/to/creds.json
 
 ## Managing Ballast PoolPolicies
 
@@ -200,17 +209,23 @@ Two test suites exist:
 - `make test` - elixir unit test suite on underlying controller code
 - `make integration` - scales node pools on GKE
 
+Two environment variables must be exported to run the full integration tests.
+
+```shell
+export GOOGLE_APPLICATION_CREDENTIALS=/abs/path/to/creds.json
+export GCP_PROJECT=your-project-id
+```
+
 Additionally `make lint` will run the mix code formatter, credo, and dialyzer.
 
 ### Developing
 
 You'll need a function cluster to connect to. Ballast will use your `current-context` in `~/.kube/config`. This can be changed in `config/dev.exs`.
 
-Two environment variables must be exported to start the application.
+GOOGLE_APPLICATION_CREDENTIALS must be set to start the application.
 
 ```shell
 export GOOGLE_APPLICATION_CREDENTIALS=/abs/path/to/creds.json
-export GCP_PROJECT=your-project-id
 ```
 
 Then run the following to generate a development manifest, apply it to your cluster, and start `iex`:

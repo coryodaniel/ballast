@@ -78,4 +78,6 @@ defmodule Ballast.PoolPolicy do
     |> Enum.reject(fn {status, _} -> status == :error end)
     |> Enum.map(fn {:ok, managed_pool} -> managed_pool end)
   end
+
+  defp make_managed_pools(_), do: []
 end

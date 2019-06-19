@@ -52,8 +52,16 @@ rules:
   - list
 - apiGroups:
   - ''
-  resources: ["pods/eviction"]
-  verbs: ["create"]
+  resources:
+  - pods
+  verbs:
+  - list
+- apiGroups:
+  - ''
+  resources:
+  - pods/eviction
+  verbs:
+  - create
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -78,6 +86,19 @@ metadata:
   name: ballast
   namespace: default
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ballast
+  namespace: default
+spec:
+  selector:
+    k8s-app: ballast
+  type: NodePort
+  ports:
+  - port: 8080
+    targetPort: web
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -101,6 +122,8 @@ spec:
           secretName: ballast-operator-sa-keys
       containers:
       - env:
+        - name: BALLAST_METRICS_PORT
+          value: "8080"
         - name: GOOGLE_APPLICATION_CREDENTIALS
           value: /credentials/gcp.json
         - name: MIX_ENV
@@ -123,6 +146,22 @@ spec:
               fieldPath: spec.serviceAccountName
         image: quay.io/coryodaniel/ballast
         name: ballast
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: web
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+          periodSeconds: 15
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: web
+          initialDelaySeconds: 5
+          periodSeconds: 15
+        ports:
+        - containerPort: 8080
+          name: web
         volumeMounts:
         - name: ballast-operator-sa-keys
           mountPath: /credentials
