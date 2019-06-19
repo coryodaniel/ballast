@@ -78,13 +78,13 @@ rm /tmp/ballast-keys.json
 kubectl apply -f ./manifests/operator.yaml
 ```
 
-The operator exposes prometheus metrics on port 8080 at `/metrics`.
+The operator exposes prometheus metrics on port 9323 at `/metrics`.
 
 **Note:** In the [`Makefile`](./Makefile) you'll see references to `manifest.yaml` and `operator.yaml`. `manifest.yaml` is an operator manifest created for development and testing. `operator.yaml` is the current stable operator release.
 
 #### Environment Variables
 
-- `BALLAST_METRICS_PORT`=8080
+- `BALLAST_METRICS_PORT`=9323
 - `BALLAST_DEBUG`=true
 - `GOOGLE_APPLICATION_CREDENTIALS`=/abs/path/to/creds.json
 

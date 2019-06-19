@@ -49,9 +49,7 @@ defmodule Ballast.MixProject do
       {:telemetry, "~> 0.4"},
       {:telemetry_metrics, "~> 0.3"},
       {:telemetry_metrics_prometheus, "~> 0.1"},
-      {:prometheus_ex, "~> 3.0"},
-      {:plug_cowboy, "~> 2.0"},
-      {:prometheus_plugs, "~> 1.1.1"},
+      {:telemetry_poller, "~> 0.3.0"},
 
       # GoogleApi requires Poison 3, but doesnt include it in its deps :(
       # https://github.com/googleapis/elixir-google-api/issues/1232

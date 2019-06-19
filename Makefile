@@ -110,8 +110,8 @@ dev.start.in-cluster: ## Deploys "latest" docker image into kubectl current cont
 	mix bonny.gen.manifest --image ${IMAGE}
 	kubectl apply -f ./manifest.yaml
 
-dev.svc.forward: ## Forward the remote k8s ballast service to localhost
-	kubectl port-forward service/ballast 8080:8080
+dev.svc-metrics.forward: ## Forward the remote k8s ballast-metrics service to localhost
+	kubectl port-forward service/ballast-metrics 9323:9323
 
 
 ## Managed Pools

@@ -89,15 +89,15 @@ metadata:
 apiVersion: v1
 kind: Service
 metadata:
-  name: ballast
+  name: ballast-metrics
   namespace: default
 spec:
   selector:
     k8s-app: ballast
   type: NodePort
   ports:
-  - port: 8080
-    targetPort: web
+  - port: 9323
+    targetPort: metrics
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -123,7 +123,7 @@ spec:
       containers:
       - env:
         - name: BALLAST_METRICS_PORT
-          value: "8080"
+          value: "9323"
         - name: GOOGLE_APPLICATION_CREDENTIALS
           value: /credentials/gcp.json
         - name: MIX_ENV
@@ -149,19 +149,19 @@ spec:
         readinessProbe:
           httpGet:
             path: /metrics
-            port: web
+            port: metrics
           initialDelaySeconds: 5
           timeoutSeconds: 1
           periodSeconds: 15
         livenessProbe:
           httpGet:
             path: /metrics
-            port: web
+            port: metrics
           initialDelaySeconds: 5
           periodSeconds: 15
         ports:
-        - containerPort: 8080
-          name: web
+        - containerPort: 9323
+          name: metrics
         volumeMounts:
         - name: ballast-operator-sa-keys
           mountPath: /credentials
