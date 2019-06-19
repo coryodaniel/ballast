@@ -46,10 +46,10 @@ defmodule Ballast.PoolPolicy.ManagedPool do
   @spec cast_minimum_percent(String.t() | pos_integer) :: pos_integer
   defp cast_minimum_percent(mp) when is_integer(mp), do: mp
   defp cast_minimum_percent(mp) when is_binary(mp), do: String.to_integer(mp)
-  defp cast_minimum_percent(_), do: Ballast.default_minimum_percent()
+  defp cast_minimum_percent(_), do: Ballast.Config.default_minimum_percent()
 
   @spec cast_minimum_instances(String.t() | pos_integer) :: pos_integer
   defp cast_minimum_instances(mi) when is_integer(mi), do: mi
   defp cast_minimum_instances(mi) when is_binary(mi), do: String.to_integer(mi)
-  defp cast_minimum_instances(_), do: Ballast.default_minimum_instances()
+  defp cast_minimum_instances(_), do: Ballast.Config.default_minimum_instances()
 end
