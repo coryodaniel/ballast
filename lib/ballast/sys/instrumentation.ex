@@ -1,4 +1,4 @@
-defmodule Ballast.Instrumentation do
+defmodule Ballast.Sys.Instrumentation do
   @moduledoc false
   use Notion, name: :ballast, metadata: %{}
 

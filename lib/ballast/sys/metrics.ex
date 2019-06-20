@@ -1,4 +1,4 @@
-defmodule Ballast.Metrics do
+defmodule Ballast.Sys.Metrics do
   @moduledoc """
   Prometheus Telemetry integration
   """

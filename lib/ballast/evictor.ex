@@ -8,7 +8,7 @@ defmodule Ballast.Evictor do
   @cluster_name :default
 
   alias K8s.Client
-  alias Ballast.Instrumentation, as: Inst
+  alias Ballast.Sys.Instrumentation, as: Inst
 
   @doc """
   Gets all pods with eviction enabled.

@@ -5,7 +5,7 @@ defmodule Ballast.NodePool do
 
   @adapter Application.get_env(:ballast, :node_pool_adapter, Ballast.NodePool.Adapters.GKE)
   alias Ballast.{NodePool}
-  alias Ballast.Instrumentation, as: Inst
+  alias Ballast.Sys.Instrumentation, as: Inst
 
   defstruct [:cluster, :instance_count, :project, :location, :name, :data]
 

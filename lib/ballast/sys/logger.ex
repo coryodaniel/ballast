@@ -1,4 +1,4 @@
-defmodule Ballast.Logger do
+defmodule Ballast.Sys.Logger do
   @moduledoc """
   Attaches telemetry events to the Elixir Logger
   """
@@ -44,7 +44,7 @@ defmodule Ballast.Logger do
 
   @spec attach_ballast() :: :ok
   defp attach_ballast() do
-    events = Ballast.Instrumentation.events()
+    events = Ballast.Sys.Instrumentation.events()
     :telemetry.attach_many("ballast-instrumentation-logger", events, &log_handler/4, :info)
   end
 end

@@ -1,4 +1,4 @@
-defmodule Ballast.Resources.Eviction do
+defmodule Ballast.Kube.Eviction do
   @moduledoc """
   Encapsulates a Kubernetes [`Eviction` resource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#create-eviction-pod-v1-core)
 
@@ -14,13 +14,13 @@ defmodule Ballast.Resources.Eviction do
   alias __MODULE__
   alias K8s.{Cluster, Operation}
   alias K8s.Conf.RequestOptions
-  alias Ballast.Instrumentation, as: Inst
+  alias Ballast.Sys.Instrumentation, as: Inst
 
   @doc """
   Returns an `Eviction` Kubernetes manifest
 
   ## Examples
-      iex> Ballast.Resources.Eviction.manifest("default", "aged-nginx")
+      iex> Ballast.Kube.Eviction.manifest("default", "aged-nginx")
       %{apiVersion: "policy/v1beta1", kind: "Eviction", metadata: %{namespace: "default", name: "aged-nginx"}}
   """
   @spec manifest(binary, binary) :: map

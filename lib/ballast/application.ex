@@ -5,11 +5,11 @@ defmodule Ballast.Application do
 
   @spec start(any(), any()) :: {:error, any()} | {:ok, pid()}
   def start(_type, _args) do
-    metrics = Ballast.Metrics.setup()
+    metrics = Ballast.Sys.Metrics.setup()
     TelemetryMetricsPrometheus.init(metrics, port: Ballast.Config.metrics_port())
 
     enable_debugging = Ballast.Config.debugging_enabled?()
-    Ballast.Logger.attach(enable_debugging)
+    Ballast.Sys.Logger.attach(enable_debugging)
 
     children = [
       {Ballast.PoolPolicy.CooldownCache, []}
