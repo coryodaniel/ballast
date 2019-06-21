@@ -13,12 +13,6 @@ defmodule Ballast.Kube.Node do
     "DiskPressure"
   ]
 
-  @spec all() :: nil
-  def all() do
-    nil
-    # recursively get all, see
-  end
-
   @spec ready?(map()) :: boolean()
   @doc """
   Checks if `status.conditions` are present and node is `Ready`
