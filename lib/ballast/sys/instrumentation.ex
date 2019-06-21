@@ -8,6 +8,12 @@ defmodule Ballast.Sys.Instrumentation do
   @doc "Pod eviction failed"
   defevent([:pod, :eviction, :failed])
 
+  @doc "Provider generated an authentication token"
+  defevent([:provider, :authentication, :succeeded])
+
+  @doc "Provider failed to generate an authentication token"
+  defevent([:provider, :authentication, :failed])
+
   @doc "Scaling pool minimum size from the provider API succeeded"
   defevent([:provider, :scale_pool, :succeeded])
 

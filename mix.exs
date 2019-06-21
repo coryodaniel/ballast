@@ -54,7 +54,7 @@ defmodule Ballast.MixProject do
       # GoogleApi requires Poison 3, but doesnt include it in its deps :(
       # https://github.com/googleapis/elixir-google-api/issues/1232
       {:poison, "~> 3.1"},
-      {:goth, "~> 1.0.1"},
+      {:goth, "~> 1.1"},
       {:google_api_container, "~> 0.5"},
       {:google_api_compute, "~> 0.6"},
 

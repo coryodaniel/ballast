@@ -9,14 +9,22 @@ defmodule Ballast do
   ]
 
   @scopes Enum.join(@scopes, " ")
+  alias Ballast.Sys.Instrumentation, as: Inst
 
   @spec conn() :: {:ok, Tesla.Client.t()} | {:error, any()}
+  @doc false
   def conn() do
-    case Goth.Token.for_scope(@scopes) do
+    {duration, response} = :timer.tc(Goth.Token, :for_scope, [@scopes])
+    measurements = %{duration: duration}
+    metadata = %{provider: "gke"}
+
+    case response do
       {:ok, tkn} ->
+        Inst.provider_authentication_succeeded(measurements, metadata)
         {:ok, GoogleApi.Container.V1.Connection.new(tkn.token)}
 
       {:error, error} ->
+        Inst.provider_authentication_failed(measurements, metadata)
         {:error, error}
     end
   end

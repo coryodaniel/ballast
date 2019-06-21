@@ -34,7 +34,7 @@ defmodule Ballast.PoolPolicy.ManagedPool do
          minimum_instances: cast_minimum_instances(mi)
        }}
     else
-      {:error, %Tesla.Env{}} ->
+      {:error, _} ->
         {:error, :pool_not_found}
     end
   end

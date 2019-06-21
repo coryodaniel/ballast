@@ -7,24 +7,30 @@ defmodule Ballast.NodePool.Adapters.Mock do
 
   alias Ballast.NodePool
 
-  @impl Ballast.NodePool.Adapters
+  @impl true
+  def label_selector(), do: ""
+
+  @impl true
+  def label_selector(_), do: ""
+
+  @impl true
   def id(%NodePool{} = pool) do
     "#{pool.project}/#{pool.location}/#{pool.cluster}/#{pool.name}"
   end
 
-  @impl Ballast.NodePool.Adapters
+  @impl true
   def get(%NodePool{name: "invalid-pool"}, _conn) do
     {:error, %Tesla.Env{status: 403}}
   end
 
-  @impl Ballast.NodePool.Adapters
+  @impl true
   def get(%NodePool{name: "pool-without-autoscaling"}, _conn) do
     {:ok, pool} = get(nil, nil)
     pool_without_autoscaling = Map.delete(pool, :autoscaling)
     {:ok, pool_without_autoscaling}
   end
 
-  @impl Ballast.NodePool.Adapters
+  @impl true
   def get(_pool, _conn) do
     pool =
       @list_json
@@ -36,17 +42,17 @@ defmodule Ballast.NodePool.Adapters.Mock do
     {:ok, pool}
   end
 
-  @impl Ballast.NodePool.Adapters
+  @impl true
   def scale(_, _), do: {:ok, %{}}
 
-  @impl Ballast.NodePool.Adapters
+  @impl true
   def size(%NodePool{name: "invalid-pool"}, _conn) do
     {:error, %Tesla.Env{status: 403}}
   end
 
-  @impl Ballast.NodePool.Adapters
+  @impl true
   def size(_, _), do: {:ok, 10}
 
-  @impl Ballast.NodePool.Adapters
+  @impl true
   def autoscaling_enabled?(_), do: true
 end

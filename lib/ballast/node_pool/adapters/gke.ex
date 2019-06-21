@@ -11,14 +11,42 @@ defmodule Ballast.NodePool.Adapters.GKE do
   alias GoogleApi.Container.V1.Api.Projects, as: Container
   alias GoogleApi.Compute.V1.Api.InstanceGroups
 
-  @impl Ballast.NodePool.Adapters
+  @impl true
+  @spec label_selector() :: binary
+  @doc """
+  Returns the label selector to get all GKE nodes in the cluster.
+
+  ## Example
+    iex> Ballast.NodePool.Adapters.GKE.label_selector()
+    "cloud.google.com/gke-nodepool"
+  """
+  def label_selector() do
+    "cloud.google.com/gke-nodepool"
+  end
+
+  @impl true
+  @spec label_selector(Ballast.NodePool.t()) :: binary
+  @doc """
+  Returns the label selector to get all the given pool's nodes in the cluster.
+
+  ## Example
+    NodePool without response data
+      iex> pool = Ballast.NodePool.new("foo", "bar", "baz", "qux")
+      ...> Ballast.NodePool.Adapters.GKE.label_selector(pool)
+      "cloud.google.com/gke-nodepool=qux"
+  """
+  def label_selector(%NodePool{name: name}) do
+    "#{label_selector()}=#{name}"
+  end
+
+  @impl true
   @spec get(Ballast.NodePool.t(), Tesla.Client.t()) :: {:ok, Ballast.NodePool.t()} | {:error, Tesla.Env.t()}
   def get(%NodePool{} = pool, conn) do
     %NodePool{project: project, location: zone, cluster: cluster, name: name} = pool
     Container.container_projects_zones_clusters_node_pools_get(conn, project, zone, cluster, name)
   end
 
-  @impl Ballast.NodePool.Adapters
+  @impl true
   @spec size(Ballast.NodePool.t(), Tesla.Client.t()) :: {:ok, integer} | {:error, Tesla.Env.t()} | {:error, atom}
   def size(%NodePool{data: %{instanceGroupUrls: urls}}, conn) do
     url = List.first(urls)
@@ -29,7 +57,7 @@ defmodule Ballast.NodePool.Adapters.GKE do
     end
   end
 
-  @impl Ballast.NodePool.Adapters
+  @impl true
   @spec scale(Ballast.PoolPolicy.Changeset.t(), Tesla.Client.t()) :: {:ok, map} | {:error, Tesla.Env.t()}
   def scale(%Ballast.PoolPolicy.Changeset{} = changeset, conn) do
     case autoscaling_enabled?(changeset.pool) do
@@ -39,7 +67,7 @@ defmodule Ballast.NodePool.Adapters.GKE do
   end
 
   @doc """
-  Generates a
+  Generates the URL identifier for the GKE API
 
   ## Example
     NodePool without response data
@@ -47,7 +75,7 @@ defmodule Ballast.NodePool.Adapters.GKE do
       ...> Ballast.NodePool.Adapters.GKE.id(pool)
       "projects/foo/locations/bar/clusters/baz/nodePools/qux"
   """
-  @impl Ballast.NodePool.Adapters
+  @impl true
   @spec id(Ballast.NodePool.t()) :: String.t()
   def id(%NodePool{} = pool) do
     "projects/#{pool.project}/locations/#{pool.location}/clusters/#{pool.cluster}/nodePools/#{pool.name}"
