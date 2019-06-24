@@ -72,21 +72,26 @@ defmodule Ballast.NodePool.Adapters.GKETest do
 
       {:ok, response} = GKE.get(node_pool, conn)
 
-      assert match?(%{autoscaling: _, instanceGroupUrls: _, name: _}, response)
+      assert %NodePool{} = response
     end
-  end
 
-  describe "size/2" do
-    test "gets the current size of a NodePool" do
+    test "gets the current instance count" do
       {:ok, conn} = Ballast.conn()
       {project, location, cluster, pool} = config()
       node_pool = NodePool.new(project, location, cluster, pool)
+
       {:ok, response} = GKE.get(node_pool, conn)
+      %NodePool{instance_count: instance_count} = response
+      assert instance_count
+    end
 
-      node_pool = %NodePool{data: response}
-      {:ok, size} = GKE.size(node_pool, conn)
+    test "captures the response in `data`" do
+      {:ok, conn} = Ballast.conn()
+      {project, location, cluster, pool} = config()
+      node_pool = NodePool.new(project, location, cluster, pool)
 
-      assert is_integer(size)
+      {:ok, response} = GKE.get(node_pool, conn)
+      assert match?(%NodePool{data: %{autoscaling: _, instanceGroupUrls: _, name: _}}, response)
     end
   end
 end

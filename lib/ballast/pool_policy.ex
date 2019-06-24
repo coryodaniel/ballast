@@ -5,6 +5,7 @@ defmodule Ballast.PoolPolicy do
   @default_cooldown_seconds 300
 
   alias Ballast.{NodePool, PoolPolicy}
+  require Logger
 
   defstruct name: nil, pool: nil, managed_pools: [], changesets: [], cooldown_seconds: nil, enable_auto_eviction: false
 
@@ -56,16 +57,17 @@ defmodule Ballast.PoolPolicy do
   Generates changesets for managed pools.
   """
   @spec changesets(t) :: {:ok, t} | {:error, any()}
-  def changesets(%PoolPolicy{managed_pools: managed_pools} = policy) do
-    with {:ok, conn} <- Ballast.conn(),
-         {:ok, pool} <- NodePool.size(policy.pool, conn) do
-      changesets =
-        Enum.map(managed_pools, fn managed_pool ->
-          PoolPolicy.Changeset.new(managed_pool, pool.instance_count)
-        end)
+  def changesets(%PoolPolicy{managed_pools: managed_pools, pool: pool} = policy) do
+    changesets =
+      Enum.map(managed_pools, fn managed_pool ->
+        Logger.info(
+          "Managed #{managed_pool.pool.name}: #{managed_pool.pool.instance_count}; Source: #{pool.instance_count}"
+        )
 
-      {:ok, %PoolPolicy{policy | changesets: changesets}}
-    end
+        PoolPolicy.Changeset.new(managed_pool, pool.instance_count)
+      end)
+
+    {:ok, %PoolPolicy{policy | changesets: changesets}}
   end
 
   # make_managed_pools/1 removes managed_pools that encountered errors in `Ballast.NodePool.Adapter/g2`

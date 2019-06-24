@@ -41,19 +41,13 @@ defmodule Ballast.NodePool.Adapters.GKE do
 
   @impl true
   @spec get(Ballast.NodePool.t(), Tesla.Client.t()) :: {:ok, Ballast.NodePool.t()} | {:error, Tesla.Env.t()}
-  def get(%NodePool{} = pool, conn) do
-    %NodePool{project: project, location: zone, cluster: cluster, name: name} = pool
-    Container.container_projects_zones_clusters_node_pools_get(conn, project, zone, cluster, name)
-  end
+  def get(%NodePool{project: project, location: zone, cluster: cluster, name: name} = pool, conn) do
+    response = Container.container_projects_zones_clusters_node_pools_get(conn, project, zone, cluster, name)
 
-  @impl true
-  @spec size(Ballast.NodePool.t(), Tesla.Client.t()) :: {:ok, integer} | {:error, Tesla.Env.t()} | {:error, atom}
-  def size(%NodePool{data: %{instanceGroupUrls: urls}}, conn) do
-    url = List.first(urls)
-
-    with {:ok, project, zone, name} <- parse_instance_group_manager_params(url),
-         {:ok, %{size: size}} <- InstanceGroups.compute_instance_groups_get(conn, project, zone, name) do
-      {:ok, size}
+    with {:ok, data} <- response,
+         pool_with_data <- %NodePool{pool | data: data},
+         {:ok, instance_count} <- size(pool_with_data, conn) do
+      {:ok, %NodePool{pool_with_data | instance_count: instance_count}}
     end
   end
 
@@ -98,6 +92,16 @@ defmodule Ballast.NodePool.Adapters.GKE do
     body = %{nodeCount: minimum_count}
 
     Container.container_projects_locations_clusters_node_pools_set_size(conn, id, body: body)
+  end
+
+  @spec size(Ballast.NodePool.t(), Tesla.Client.t()) :: {:ok, integer} | {:error, Tesla.Env.t()} | {:error, atom}
+  defp size(%NodePool{data: %{instanceGroupUrls: urls}}, conn) do
+    url = List.first(urls)
+
+    with {:ok, project, zone, name} <- parse_instance_group_manager_params(url),
+         {:ok, %{size: size}} <- InstanceGroups.compute_instance_groups_get(conn, project, zone, name) do
+      {:ok, size}
+    end
   end
 
   @doc """

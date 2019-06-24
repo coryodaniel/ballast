@@ -3,10 +3,24 @@ defmodule Ballast.NodePool.Adapters do
   `NodePool` adapter for getting node pool metadata.
   """
 
+  @doc """
+  Returns the cloud provider specific unique ID for the node pool
+  """
   @callback id(Ballast.NodePool.t()) :: binary
-  @callback scale(Ballast.PoolPolicy.Changeset.t(), Tesla.Client.t()) :: {:ok, map} | {:error, Tesla.Env.t()}
+
+  @doc """
+  Populates a `NodePool` with the current instance count and the cloud providers HTTP response (`data` field).
+  """
   @callback get(Ballast.NodePool.t(), Tesla.Client.t()) :: {:ok, Ballast.NodePool.t()} | {:error, Tesla.Env.t()}
-  @callback size(Ballast.NodePool.t(), Tesla.Client.t()) :: {:ok, integer} | {:error, Tesla.Env.t()} | {:error, atom}
+
+  @doc """
+  Scale the minimum count.
+  """
+  @callback scale(Ballast.PoolPolicy.Changeset.t(), Tesla.Client.t()) :: {:ok, map} | {:error, Tesla.Env.t()}
+
+  @doc """
+  Determine if autoscaling is enabled on the pool.
+  """
   @callback autoscaling_enabled?(Ballast.NodePool.t()) :: boolean()
 
   @doc """

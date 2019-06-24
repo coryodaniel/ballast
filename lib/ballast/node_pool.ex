@@ -57,7 +57,7 @@ defmodule Ballast.NodePool do
       iex> node_pool = Ballast.NodePool.new("my-project", "us-central1-a", "my-cluster", "my-pool")
       ...> {:ok, conn} = Ballast.conn()
       ...> Ballast.NodePool.get(node_pool, conn)
-      {:ok, %Ballast.NodePool{cluster: "my-cluster", location: "us-central1-a", name: "my-pool", project: "my-project", data: %{autoscaling: %{enabled: true, maxNodeCount: 5, minNodeCount: 3}, instanceGroupUrls: ["https://www.googleapis.com/compute/v1/projects/my-project/zones/us-central1-a/instanceGroupManagers/gke-demo-demo-preemptible"], name: "demo-preemptible", selfLink: "https://container.googleapis.com/v1/projects/my-project/zones/us-central1-a/clusters/demo/nodePools/demo-preemptible", status: "RUNNING", initialNodeCount: 1}}}
+      {:ok, %Ballast.NodePool{cluster: "my-cluster", location: "us-central1-a", name: "my-pool", project: "my-project", instance_count: 10, data: %{autoscaling: %{enabled: true, maxNodeCount: 5, minNodeCount: 3}, instanceGroupUrls: ["https://www.googleapis.com/compute/v1/projects/my-project/zones/us-central1-a/instanceGroupManagers/gke-demo-demo-preemptible"], name: "demo-preemptible", selfLink: "https://container.googleapis.com/v1/projects/my-project/zones/us-central1-a/clusters/demo/nodePools/demo-preemptible", status: "RUNNING", initialNodeCount: 1}}}
   """
   @spec get(t, Tesla.Client.t()) :: {:ok, t} | {:error, Tesla.Env.t()}
   def get(pool, conn) do
@@ -65,10 +65,9 @@ defmodule Ballast.NodePool do
     measurements = %{duration: duration}
 
     case response do
-      {:ok, response} ->
-        Inst.provider_get_pool_succeeded(measurements, %{pool: pool.name})
-        node_pool = %NodePool{pool | data: response}
-        {:ok, node_pool}
+      {:ok, updated_pool} ->
+        Inst.provider_get_pool_succeeded(measurements, %{pool: updated_pool.name})
+        {:ok, updated_pool}
 
       {:error, %Tesla.Env{status: status}} = error ->
         Inst.provider_get_pool_failed(measurements, %{status: status, pool: pool.name})
@@ -101,32 +100,6 @@ defmodule Ballast.NodePool do
 
       {:error, %Tesla.Env{status: status}} = error ->
         Inst.provider_scale_pool_failed(measurements, %{status: status, pool: pool.name})
-        error
-    end
-  end
-
-  @doc """
-  Returns the size of a pool by checking `size` from the pool's `InstanceGroupManager`
-
-  ## Examples
-    Returns the size when the pool exists
-      iex> pool = %Ballast.NodePool{data: %{"foo" => "bar"}}
-      ...> {:ok, conn} = Ballast.conn()
-      ...> Ballast.NodePool.size(pool, conn)
-      {:ok, %Ballast.NodePool{instance_count: 10, data: %{"foo" => "bar"}}}
-  """
-  @spec size(t, Tesla.Client.t()) :: {:ok, t} | {:error, Tesla.Env.t()}
-  def size(%Ballast.NodePool{} = pool, conn) do
-    {duration, response} = :timer.tc(adapter_for(pool), :size, [pool, conn])
-    measurements = %{duration: duration}
-
-    case response do
-      {:ok, count} ->
-        Inst.provider_get_pool_size_succeeded(measurements, %{pool: pool.name})
-        {:ok, %NodePool{pool | instance_count: count}}
-
-      {:error, %Tesla.Env{status: status}} = error ->
-        Inst.provider_get_pool_size_failed(measurements, %{status: status, pool: pool.name})
         error
     end
   end

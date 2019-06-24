@@ -31,27 +31,21 @@ defmodule Ballast.NodePool.Adapters.Mock do
   end
 
   @impl true
-  def get(_pool, _conn) do
-    pool =
+  def get(pool, _conn) do
+    data =
       @list_json
       |> File.read!()
       |> Jason.decode!(keys: :atoms)
       |> Map.get(:nodePools)
       |> List.last()
 
+    pool = %NodePool{pool | instance_count: 10, data: data}
+
     {:ok, pool}
   end
 
   @impl true
   def scale(_, _), do: {:ok, %{}}
-
-  @impl true
-  def size(%NodePool{name: "invalid-pool"}, _conn) do
-    {:error, %Tesla.Env{status: 403}}
-  end
-
-  @impl true
-  def size(_, _), do: {:ok, 10}
 
   @impl true
   def autoscaling_enabled?(_), do: true
