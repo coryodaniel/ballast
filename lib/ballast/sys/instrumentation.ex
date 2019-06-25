@@ -8,20 +8,14 @@ defmodule Ballast.Sys.Instrumentation do
   @doc "Pod eviction failed"
   defevent([:pod, :eviction, :failed])
 
-  @doc "NodePool needs to scale up"
-  defevent([:node_pool, :scale, :up])
-
-  @doc "NodePool needs to scale down"
-  defevent([:node_pool, :scale, :down])
-
-  @doc "NodePool scale decision skipped"
-  defevent([:node_pool, :scale, :skip])
-
   @doc "Provider generated an authentication token"
   defevent([:provider, :authentication, :succeeded])
 
   @doc "Provider failed to generate an authentication token"
   defevent([:provider, :authentication, :failed])
+
+  @doc "Scaling pool minimum size was skipped"
+  defevent([:provider, :scale_pool, :skipped])
 
   @doc "Scaling pool minimum size from the provider API succeeded"
   defevent([:provider, :scale_pool, :succeeded])

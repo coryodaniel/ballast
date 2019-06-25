@@ -3,31 +3,36 @@ defmodule Ballast.PoolPolicy.Changeset do
   Changes to apply to a managed pool
   """
 
+  alias Ballast.NodePool
   alias Ballast.PoolPolicy.{Changeset, ManagedPool}
-  alias Ballast.Sys.Instrumentation, as: Inst
 
-  defstruct [:pool, :minimum_count]
+  defstruct [:pool, :minimum_count, :strategy]
 
   @type t :: %__MODULE__{
-          pool: Ballast.NodePool.t(),
-          minimum_count: pos_integer
+          pool: NodePool.t(),
+          minimum_count: pos_integer,
+          strategy: :nothing | :scale_up | :scale_down
         }
 
   @doc """
-  Creates a new `Changeset` given a `Ballast.PoolPolicy.ManagedPool` and a current source pool instance count.
+  Creates a new `Changeset` given a `Ballast.PoolPolicy.ManagedPool` and a current source `NodePool`.
 
   ## Examples
-      iex> managed_pool = %Ballast.PoolPolicy.ManagedPool{minimum_percent: 30, minimum_instances: 1}
-      iex> source_count = 10
-      ...> Ballast.PoolPolicy.Changeset.new(managed_pool, source_count)
-      %Ballast.PoolPolicy.Changeset{minimum_count: 3}
+      iex> managed_pool = %Ballast.PoolPolicy.ManagedPool{pool: %Ballast.NodePool{name: "managed-pool"}, minimum_percent: 30, minimum_instances: 1}
+      ...> source_pool = %Ballast.NodePool{instance_count: 10}
+      ...> Ballast.PoolPolicy.Changeset.new(managed_pool, source_pool)
+      %Ballast.PoolPolicy.Changeset{minimum_count: 3, pool: %Ballast.NodePool{cluster: nil, data: nil, instance_count: nil, location: nil, name: "managed-pool", project: nil, under_pressure: nil}, strategy: :scale_down}
   """
-  @spec new(ManagedPool.t(), integer) :: t
-  def new(managed_pool, source_count) do
-    new_minimum_count =
+  @spec new(ManagedPool.t(), NodePool.t()) :: t
+  def new(managed_pool, %NodePool{instance_count: source_count} = source_pool) do
+    calculated_minimum_count =
       calc_new_minimum_count(source_count, managed_pool.minimum_percent, managed_pool.minimum_instances)
 
-    %Changeset{pool: managed_pool.pool, minimum_count: new_minimum_count}
+    %Changeset{
+      pool: managed_pool.pool,
+      minimum_count: calculated_minimum_count,
+      strategy: strategy(managed_pool, source_pool)
+    }
   end
 
   @doc """
@@ -43,36 +48,31 @@ defmodule Ballast.PoolPolicy.Changeset do
   ## Examples
     When the source pool's instance count is greater
       iex> managed_pool = %Ballast.PoolPolicy.ManagedPool{pool: %Ballast.NodePool{instance_count: 5}}
-      ...> source_count = 10
-      ...> Ballast.PoolPolicy.Changeset.strategy(managed_pool, source_count, false)
-      {:scale, :up}
+      ...> source_pool = %Ballast.NodePool{instance_count: 10, under_pressure: false}
+      ...> Ballast.PoolPolicy.Changeset.strategy(managed_pool, source_pool)
+      :scale_up
 
     When the source pool's instance count is lower and the source pool is under pressure
       iex> managed_pool = %Ballast.PoolPolicy.ManagedPool{pool: %Ballast.NodePool{instance_count: 5}}
-      ...> source_count = 1
-      ...> Ballast.PoolPolicy.Changeset.strategy(managed_pool, source_count, true)
+      ...> source_pool = %Ballast.NodePool{instance_count: 1, under_pressure: true}
+      ...> Ballast.PoolPolicy.Changeset.strategy(managed_pool, source_pool)
       :nothing
 
     When the source pool's instance count is lower and the source pool is not under pressure
       iex> managed_pool = %Ballast.PoolPolicy.ManagedPool{pool: %Ballast.NodePool{instance_count: 5}}
-      ...> source_count = 1
-      ...> Ballast.PoolPolicy.Changeset.strategy(managed_pool, source_count, false)
-      {:scale, :down}
+      ...> source_pool = %Ballast.NodePool{instance_count: 1, under_pressure: false}
+      ...> Ballast.PoolPolicy.Changeset.strategy(managed_pool, source_pool)
+      :scale_down
   """
-  @spec strategy(ManagedPool.t(), integer, boolean) :: :nothing | {:scale, :up | :down}
-  def strategy(%ManagedPool{pool: pool} = managed_pool, source_count, pool_under_pressure) do
-    metadata = %{pool: pool.name}
-
-    if source_count >= managed_pool.pool.instance_count do
-      Inst.node_pool_scale_up(%{}, metadata)
-      {:scale, :up}
+  @spec strategy(ManagedPool.t(), NodePool.t()) :: :nothing | {:scale, :up | :down}
+  def strategy(%ManagedPool{pool: pool} = managed_pool, source_pool) do
+    if source_pool.instance_count >= managed_pool.pool.instance_count do
+      :scale_up
     else
-      if pool_under_pressure do
-        Inst.node_pool_scale_skip(%{}, metadata)
+      if source_pool.under_pressure do
         :nothing
       else
-        Inst.node_pool_scale_down(%{}, metadata)
-        {:scale, :down}
+        :scale_down
       end
     end
   end

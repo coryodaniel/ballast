@@ -18,6 +18,7 @@ defmodule Ballast.PoolPolicyTest do
           project: "my-project",
           location: "my-source-region-or-zone",
           name: "my-source-pool",
+          under_pressure: false,
           data: mock_data_response()
         },
         changesets: [],

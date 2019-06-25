@@ -8,9 +8,10 @@ defmodule Ballast.NodePool do
   @node_pool_pressure_threshold @node_pool_pressure_percent / 100
 
   alias Ballast.{NodePool}
+  alias Ballast.PoolPolicy.Changeset
   alias Ballast.Sys.Instrumentation, as: Inst
 
-  defstruct [:cluster, :instance_count, :project, :location, :name, :data]
+  defstruct [:cluster, :instance_count, :project, :location, :name, :data, :under_pressure]
 
   @typedoc "Node pool metadata"
   @type t :: %NodePool{
@@ -19,7 +20,8 @@ defmodule Ballast.NodePool do
           location: String.t(),
           instance_count: integer | nil,
           name: String.t(),
-          data: map | nil
+          data: map | nil,
+          under_pressure: boolean
         }
 
   @doc """
@@ -50,8 +52,18 @@ defmodule Ballast.NodePool do
       %Ballast.NodePool{cluster: "cluster", project: "project", location: "location", name: "name", data: %{"foo" => "bar"}}
   """
   @spec new(String.t(), String.t(), String.t(), String.t(), map | nil) :: t
-  def new(project, location, cluster, name, data \\ %{}),
-    do: %NodePool{cluster: cluster, project: project, location: location, name: name, data: data}
+  def new(project, location, cluster, name, data \\ %{}) do
+    %NodePool{cluster: cluster, project: project, location: location, name: name, data: data}
+  end
+
+  @doc """
+  Updates a `NodePool`'s `:under_pressure` field based on `under_pressure?/1`
+  """
+  @spec set_under_pressure(NodePool.t()) :: NodePool.t()
+  def set_under_pressure(pool) do
+    under_pressure = NodePool.under_pressure?(pool)
+    %NodePool{pool | under_pressure: under_pressure}
+  end
 
   @doc """
   Gets a node pool.
@@ -84,17 +96,28 @@ defmodule Ballast.NodePool do
   ## Examples
       iex> node_pool = Ballast.NodePool.new("my-proj", "my-loc", "my-cluster", "my-pool")
       ...> managed_pool = %Ballast.PoolPolicy.ManagedPool{pool: node_pool, minimum_percent: 30, minimum_instances: 1}
-      ...> source_instance_count = 10
-      ...> changeset = Ballast.PoolPolicy.Changeset.new(managed_pool, source_instance_count)
+      ...> source_pool = %Ballast.NodePool{instance_count: 10}
+      ...> changeset = Ballast.PoolPolicy.Changeset.new(managed_pool, source_pool)
       ...> Ballast.NodePool.scale(changeset, Ballast.conn())
       :ok
   """
-  @spec scale(Ballast.PoolPolicy.Changeset.t(), Tesla.Client.t()) :: :ok | {:error, Tesla.Env.t()}
-  def scale(changeset, conn) do
+  @spec scale(Changeset.t(), Tesla.Client.t()) :: :ok | {:error, Tesla.Env.t()}
+  def scale(%Changeset{strategy: :nothing} = changeset, _) do
+    Inst.provider_scale_pool_skipped(%{}, %{pool: changeset.pool.name})
+    :ok
+  end
+
+  def scale(%Changeset{} = changeset, conn) do
     pool = changeset.pool
 
     {duration, response} = :timer.tc(adapter_for(pool), :scale, [changeset, conn])
-    measurements = %{duration: duration}
+    metadata = %{pool: pool.name}
+
+    measurements = %{
+      duration: duration,
+      managed_pool_current_count: pool.instance_count,
+      managed_pool_new_count: changeset.minimum_count
+    }
 
     case response do
       {:ok, _} ->
@@ -102,7 +125,8 @@ defmodule Ballast.NodePool do
         :ok
 
       {:error, %Tesla.Env{status: status}} = error ->
-        Inst.provider_scale_pool_failed(measurements, %{status: status, pool: pool.name})
+        failed_metadata = Map.merge(metadata, %{status: status})
+        Inst.provider_scale_pool_failed(measurements, failed_metadata)
         error
     end
   end

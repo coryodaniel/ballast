@@ -1,5 +1,5 @@
 provider "google" {
-  version     = "~> 2.4.1"
+  version     = "~> 2.9"
   region      = "${var.gcp_region}"
   project     = "${var.gcp_project}"
   credentials = "${file(var.gcp_credentials_path)}"
@@ -51,7 +51,7 @@ resource "google_container_node_pool" "preemptible_nodes" {
       disable-legacy-endpoints = "true"
     }
 
-    labels {
+    labels = {
       node-group = "${local.node_group}"
       node-type  = "preemptible"
     }
@@ -82,7 +82,7 @@ resource "google_container_node_pool" "od-n1-1" {
       disable-legacy-endpoints = "true"
     }
 
-    labels {
+    labels = {
       node-group = "${local.node_group}"
     }
   }
@@ -112,7 +112,7 @@ resource "google_container_node_pool" "od-n1-2" {
       disable-legacy-endpoints = "true"
     }
 
-    labels {
+    labels = {
       node-group = "${local.node_group}"
     }
   }
@@ -147,10 +147,10 @@ data "template_file" "poolpolicy-yaml" {
   template = "${file("${path.module}/ballast-poolpolicy.tpl.yaml")}"
 
   vars = {
-    project       = "${var.gcp_project}"
-    location      = "${local.location}"
-    cluster       = "${google_container_cluster.main.name}"
-    source_pool   = "${google_container_node_pool.preemptible_nodes.name}"
+    project        = "${var.gcp_project}"
+    location       = "${local.location}"
+    cluster        = "${google_container_cluster.main.name}"
+    source_pool    = "${google_container_node_pool.preemptible_nodes.name}"
     managed_pool_1 = "${google_container_node_pool.od-n1-1.name}"
     managed_pool_2 = "${google_container_node_pool.od-n1-2.name}"
   }

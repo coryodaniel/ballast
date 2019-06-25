@@ -26,7 +26,9 @@ defmodule Ballast.PoolPolicy do
   def from_resource(%{"metadata" => %{"name" => name}} = resource) do
     pool = NodePool.new(resource)
 
-    with {:ok, conn} <- Ballast.conn(), {:ok, pool} <- NodePool.get(pool, conn) do
+    with {:ok, conn} <- Ballast.conn(),
+         {:ok, pool} <- NodePool.get(pool, conn),
+         pool <- NodePool.set_under_pressure(pool) do
       managed_pools = make_managed_pools(resource)
       cooldown_seconds = get_in(resource, ["spec", "cooldownSeconds"]) || @default_cooldown_seconds
       enable_auto_eviction = get_in(resource, ["spec", "enableAutoEviction"]) || false
@@ -60,12 +62,7 @@ defmodule Ballast.PoolPolicy do
   """
   @spec changesets(t) :: {:ok, t} | {:error, any()}
   def changesets(%PoolPolicy{managed_pools: managed_pools, pool: pool} = policy) do
-    source_under_pressure = NodePool.under_pressure?(pool)
-
-    changesets =
-      managed_pools
-      |> Enum.filter(fn mp -> {:scale, _} = Changeset.strategy(mp, pool.instance_count, source_under_pressure) end)
-      |> Enum.map(fn mp -> Changeset.new(mp, pool.instance_count) end)
+    changesets = Enum.map(managed_pools, fn mp -> Changeset.new(mp, pool) end)
 
     {:ok, %PoolPolicy{policy | changesets: changesets}}
   end
