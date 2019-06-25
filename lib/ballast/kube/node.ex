@@ -62,6 +62,55 @@ defmodule Ballast.Kube.Node do
   def ready?(_), do: false
 
   @doc """
+  Percent CPU available
+
+  ## Examples
+    iex> node = %{"status" => %{"allocatable" => %{"cpu" => "940m"}, "capacity" => %{"cpu" => "1"}}}
+    ...> Ballast.Kube.Node.percent_cpu_available(node)
+    0.94
+  """
+  @spec percent_cpu_available(map) :: float
+  def percent_cpu_available(node) do
+    {allocatable, capacity} = get_field_status(node, "cpu")
+    K8s.Resource.cpu(allocatable) / K8s.Resource.cpu(capacity)
+  end
+
+  @doc """
+  Percent memory available
+
+  ## Examples
+    iex> node = %{"status" => %{"allocatable" => %{"memory" => "8Gi"}, "capacity" => %{"memory" => "16Gi"}}}
+    ...> Ballast.Kube.Node.percent_memory_available(node)
+    0.50
+  """
+  @spec percent_memory_available(map) :: float
+  def percent_memory_available(node) do
+    {allocatable, capacity} = get_field_status(node, "memory")
+    K8s.Resource.memory(allocatable) / K8s.Resource.memory(capacity)
+  end
+
+  @doc """
+  Percent pods available
+
+  ## Examples
+    iex> node = %{"status" => %{"allocatable" => %{"pods" => "20"}, "capacity" => %{"pods" => "100"}}}
+    ...> Ballast.Kube.Node.percent_pods_available(node)
+    0.20
+  """
+  @spec percent_pods_available(map) :: float
+  def percent_pods_available(node) do
+    {allocatable, capacity} = get_field_status(node, "pods")
+    String.to_integer(allocatable) / String.to_integer(capacity)
+  end
+
+  defp get_field_status(node, field) do
+    allocatable = get_in(node, ["status", "allocatable", field])
+    capacity = get_in(node, ["status", "capacity", field])
+
+    {allocatable, capacity}
+  end
+
+  @doc """
   Finds the node with the most CPU
 
   ## Examples

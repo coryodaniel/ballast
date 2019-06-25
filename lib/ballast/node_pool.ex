@@ -4,6 +4,9 @@ defmodule Ballast.NodePool do
   """
 
   @adapter Application.get_env(:ballast, :node_pool_adapter, Ballast.NodePool.Adapters.GKE)
+  @node_pool_pressure_percent 90
+  @node_pool_pressure_threshold @node_pool_pressure_percent / 100
+
   alias Ballast.{NodePool}
   alias Ballast.Sys.Instrumentation, as: Inst
 
@@ -104,8 +107,41 @@ defmodule Ballast.NodePool do
     end
   end
 
+  @doc """
+  Determines if autoscaling is enabled for a pool
+  """
   @spec autoscaling_enabled?(Ballast.NodePool.t()) :: boolean()
   def autoscaling_enabled?(pool), do: adapter_for(pool).autoscaling_enabled?(pool)
+
+  @doc """
+  Determine if a pool is under pressure.
+
+  A pool is considered under pressure when more than #{@node_pool_pressure_percent} percent of its nodes are under pressure.
+  """
+  @spec under_pressure?(Ballast.NodePool.t()) :: boolean()
+  def under_pressure?(%Ballast.NodePool{} = pool) do
+    {:ok, stream} = nodes(pool)
+    nodes = Enum.into(stream, [])
+
+    nodes_under_pressure = Enum.filter(nodes, fn node -> node_under_pressure?(node) end)
+
+    percent_under_pressure = length(nodes_under_pressure) / length(nodes)
+    percent_under_pressure >= @node_pool_pressure_threshold
+  end
+
+  @doc """
+  Get the nodes from the kubernetes API matching the provider's label selector.
+  """
+  @spec nodes(Ballast.NodePool.t()) :: list(map)
+  def nodes(%Ballast.NodePool{} = pool) do
+    label_selector = adapter_for(pool).label_selector(pool)
+    op = K8s.Client.list("v1", :nodes)
+    K8s.Client.stream(op, :default, params: %{labelSelector: label_selector})
+  end
+
+  defp node_under_pressure?(node) do
+    !Ballast.Kube.Node.ready?(node) || Ballast.Kube.Node.resources_constrained?(node)
+  end
 
   @doc """
   Mocking out for multi-provider. Should take a NodePool or PoolPolicy and determine which cloud provider to use.

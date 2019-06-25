@@ -31,19 +31,20 @@ defmodule Ballast.Controller.V1.PoolPolicy do
     do_apply(payload)
   end
 
-  @spec inst(map | binary, atom) :: :ok
-  def inst(%{"metadata" => %{"name" => name}}, event), do: inst(name, event)
+  @spec inst(map | binary, atom, map | nil) :: :ok
+  def inst(policy_or_name, action, measurements \\ %{})
+  def inst(%{"metadata" => %{"name" => name}}, event, measurements), do: inst(name, event, measurements)
 
-  def inst(name, event) do
+  def inst(name, event, measurements) do
     metadata = %{name: name}
 
     case event do
-      :added -> Inst.pool_policy_added(%{}, metadata)
-      :deleted -> Inst.pool_policy_deleted(%{}, metadata)
-      :modified -> Inst.pool_policy_modified(%{}, metadata)
-      :reconciled -> Inst.pool_policy_reconciled(%{}, metadata)
-      :applied -> Inst.pool_policy_applied(%{}, metadata)
-      :backed_off -> Inst.pool_policy_backed_off(%{}, metadata)
+      :added -> Inst.pool_policy_added(measurements, metadata)
+      :deleted -> Inst.pool_policy_deleted(measurements, metadata)
+      :modified -> Inst.pool_policy_modified(measurements, metadata)
+      :reconciled -> Inst.pool_policy_reconciled(measurements, metadata)
+      :applied -> Inst.pool_policy_applied(measurements, metadata)
+      :backed_off -> Inst.pool_policy_backed_off(measurements, metadata)
     end
   end
 
@@ -89,9 +90,9 @@ defmodule Ballast.Controller.V1.PoolPolicy do
 
     with :ok <- PoolPolicy.CooldownCache.ready?(policy),
          {:ok, policy} <- PoolPolicy.changesets(policy),
-         :ok <- PoolPolicy.apply(policy) do
+         {succeeded, failed} <- PoolPolicy.apply(policy) do
       PoolPolicy.CooldownCache.ran(policy)
-      inst(policy.name, :applied)
+      inst(policy.name, :applied, %{succeeded: succeeded, failed: failed})
       :ok
     else
       {:error, :cooling_down} ->

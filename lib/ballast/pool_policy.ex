@@ -5,7 +5,6 @@ defmodule Ballast.PoolPolicy do
   @default_cooldown_seconds 300
 
   alias Ballast.{NodePool, PoolPolicy}
-  require Logger
 
   defstruct name: nil, pool: nil, managed_pools: [], changesets: [], cooldown_seconds: nil, enable_auto_eviction: false
 
@@ -44,13 +43,15 @@ defmodule Ballast.PoolPolicy do
   end
 
   @doc """
-  Applies all changesets
+  Applies all changesets. Returns a tuple of two lists: `{succeeded, failed}`
   """
-  @spec apply(t) :: :ok
+  @spec apply(t) :: {list, list}
   def apply(%__MODULE__{} = policy) do
     {:ok, conn} = Ballast.conn()
-    Enum.each(policy.changesets, &NodePool.scale(&1, conn))
-    :ok
+
+    Enum.split_with(policy.changesets, fn changeset ->
+      :ok == NodePool.scale(changeset, conn)
+    end)
   end
 
   @doc """
@@ -60,10 +61,6 @@ defmodule Ballast.PoolPolicy do
   def changesets(%PoolPolicy{managed_pools: managed_pools, pool: pool} = policy) do
     changesets =
       Enum.map(managed_pools, fn managed_pool ->
-        Logger.info(
-          "Managed #{managed_pool.pool.name}: #{managed_pool.pool.instance_count}; Source: #{pool.instance_count}"
-        )
-
         PoolPolicy.Changeset.new(managed_pool, pool.instance_count)
       end)
 

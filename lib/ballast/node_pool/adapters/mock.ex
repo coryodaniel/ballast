@@ -24,8 +24,8 @@ defmodule Ballast.NodePool.Adapters.Mock do
   end
 
   @impl true
-  def get(%NodePool{name: "pool-without-autoscaling"}, _conn) do
-    {:ok, pool} = get(nil, nil)
+  def get(%NodePool{name: "pool-without-autoscaling"} = pool, _conn) do
+    {:ok, pool} = get(pool, nil)
     pool_without_autoscaling = Map.delete(pool, :autoscaling)
     {:ok, pool_without_autoscaling}
   end
