@@ -103,30 +103,32 @@ defmodule Ballast.NodePool do
   """
   @spec scale(Changeset.t(), Tesla.Client.t()) :: :ok | {:error, Tesla.Env.t()}
   def scale(%Changeset{strategy: :nothing} = changeset, _) do
-    Inst.provider_scale_pool_skipped(%{}, %{pool: changeset.pool.name})
+    {measurements, metadata} = measurements_and_metadata(changeset)
+    Inst.provider_scale_pool_skipped(measurements, metadata)
+    :ok
+  end
+
+  def scale(%Changeset{minimum_count: count, pool: %NodePool{instance_count: count}} = changeset, _) do
+    {measurements, metadata} = measurements_and_metadata(changeset)
+    Inst.provider_scale_pool_skipped(measurements, metadata)
     :ok
   end
 
   def scale(%Changeset{} = changeset, conn) do
     pool = changeset.pool
-
     {duration, response} = :timer.tc(adapter_for(pool), :scale, [changeset, conn])
-    metadata = %{pool: pool.name}
+    {measurements, metadata} = measurements_and_metadata(changeset)
 
-    measurements = %{
-      duration: duration,
-      managed_pool_current_count: pool.instance_count,
-      managed_pool_new_count: changeset.minimum_count
-    }
+    measurements = Map.put(measurements, :duration, duration)
 
     case response do
       {:ok, _} ->
-        Inst.provider_scale_pool_succeeded(measurements, %{pool: pool.name})
+        Inst.provider_scale_pool_succeeded(measurements, metadata)
         :ok
 
       {:error, %Tesla.Env{status: status}} = error ->
-        failed_metadata = Map.merge(metadata, %{status: status})
-        Inst.provider_scale_pool_failed(measurements, failed_metadata)
+        metadata = Map.put(metadata, :status, status)
+        Inst.provider_scale_pool_failed(measurements, metadata)
         error
     end
   end
@@ -167,9 +169,20 @@ defmodule Ballast.NodePool do
     !Ballast.Kube.Node.ready?(node) || Ballast.Kube.Node.resources_constrained?(node)
   end
 
-  @doc """
-  Mocking out for multi-provider. Should take a NodePool or PoolPolicy and determine which cloud provider to use.
-  """
+  @doc false
+  @spec measurements_and_metadata(Changeset.t()) :: {map, map}
+  defp measurements_and_metadata(changeset) do
+    measurements = %{
+      managed_pool_current_count: changeset.pool.instance_count,
+      managed_pool_new_count: changeset.minimum_count
+    }
+
+    metadata = %{pool: changeset.pool.name, strategy: changeset.strategy}
+
+    {measurements, metadata}
+  end
+
+  # Mocking out for multi-provider. Should take a NodePool or PoolPolicy and determine which cloud provider to use.
   @spec adapter_for(Ballast.NodePool.t()) :: module()
-  def adapter_for(_), do: @adapter
+  defp adapter_for(_), do: @adapter
 end

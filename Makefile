@@ -59,12 +59,12 @@ dev.cluster.apply:
 dev.cluster.delete: ## Delete development cluster
 	cd terraform && terraform destroy -var-file=terraform.tfvars
 
-operator.apply: ## Run operator.yaml in kubectl current context using the latest docker image
-	-@kubectl delete -f ./manifests/operator.yaml
-	kubectl apply -f ./manifests/operator.yaml
+operator.apply: ## Apply kustomization base in kubectl current context using the latest docker image
+	-@kubectl delete -k ./manifests/base/
+	kubectl apply -k ./manifests/base/
 
 operator.delete: ## Delete the operator in kubectl current context
-	kubectl delete -f ./manifests/operator.yaml
+	kubectl delete -k ./manifests/base/
 
 dev.policy.apply: ## Create / Update example PoolPolicy
 dev.policy.apply:
