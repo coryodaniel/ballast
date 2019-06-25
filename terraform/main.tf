@@ -35,7 +35,7 @@ resource "google_container_node_pool" "preemptible_nodes" {
 
   autoscaling {
     min_node_count = 1
-    max_node_count = 25
+    max_node_count = 20
   }
 
   management {
@@ -66,7 +66,7 @@ resource "google_container_node_pool" "od-n1-1" {
 
   autoscaling {
     min_node_count = 1
-    max_node_count = 25
+    max_node_count = 20
   }
 
   management {
@@ -96,7 +96,7 @@ resource "google_container_node_pool" "od-n1-2" {
 
   autoscaling {
     min_node_count = 1
-    max_node_count = 25
+    max_node_count = 20
   }
 
   management {
