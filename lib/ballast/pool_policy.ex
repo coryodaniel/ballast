@@ -5,6 +5,7 @@ defmodule Ballast.PoolPolicy do
   @default_cooldown_seconds 300
 
   alias Ballast.{NodePool, PoolPolicy}
+  alias PoolPolicy.Changeset
 
   defstruct name: nil, pool: nil, managed_pools: [], changesets: [], cooldown_seconds: nil, enable_auto_eviction: false
 
@@ -15,7 +16,7 @@ defmodule Ballast.PoolPolicy do
           cooldown_seconds: pos_integer,
           enable_auto_eviction: boolean,
           managed_pools: list(PoolPolicy.ManagedPool.t()),
-          changesets: list(PoolPolicy.Changeset.t())
+          changesets: list(Changeset.t())
         }
 
   @doc """
@@ -59,10 +60,12 @@ defmodule Ballast.PoolPolicy do
   """
   @spec changesets(t) :: {:ok, t} | {:error, any()}
   def changesets(%PoolPolicy{managed_pools: managed_pools, pool: pool} = policy) do
+    source_under_pressure = NodePool.under_pressure?(pool)
+
     changesets =
-      Enum.map(managed_pools, fn managed_pool ->
-        PoolPolicy.Changeset.new(managed_pool, pool.instance_count)
-      end)
+      managed_pools
+      |> Enum.filter(fn mp -> {:scale, _} = Changeset.strategy(mp, pool.instance_count, source_under_pressure) end)
+      |> Enum.map(fn mp -> Changeset.new(mp, pool.instance_count) end)
 
     {:ok, %PoolPolicy{policy | changesets: changesets}}
   end

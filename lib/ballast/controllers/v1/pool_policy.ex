@@ -27,15 +27,15 @@ defmodule Ballast.Controller.V1.PoolPolicy do
   @spec add(map()) :: :ok | :error
   @impl Bonny.Controller
   def add(payload) do
-    inst(payload, :added)
+    dispatch(payload, :added)
     do_apply(payload)
   end
 
-  @spec inst(map | binary, atom, map | nil) :: :ok
-  def inst(policy_or_name, action, measurements \\ %{})
-  def inst(%{"metadata" => %{"name" => name}}, event, measurements), do: inst(name, event, measurements)
+  @spec dispatch(map | binary, atom, map | nil) :: :ok
+  def dispatch(policy_or_name, action, measurements \\ %{})
+  def dispatch(%{"metadata" => %{"name" => name}}, event, measurements), do: dispatch(name, event, measurements)
 
-  def inst(name, event, measurements) do
+  def dispatch(name, event, measurements) do
     metadata = %{name: name}
 
     case event do
@@ -54,7 +54,7 @@ defmodule Ballast.Controller.V1.PoolPolicy do
   @spec modify(map()) :: :ok | :error
   @impl Bonny.Controller
   def modify(payload) do
-    inst(payload, :modified)
+    dispatch(payload, :modified)
     do_apply(payload)
   end
 
@@ -64,7 +64,7 @@ defmodule Ballast.Controller.V1.PoolPolicy do
   @spec delete(map()) :: :ok | :error
   @impl Bonny.Controller
   def delete(payload) do
-    inst(payload, :deleted)
+    dispatch(payload, :deleted)
   end
 
   @doc """
@@ -73,7 +73,7 @@ defmodule Ballast.Controller.V1.PoolPolicy do
   @spec reconcile(map()) :: :ok | :error
   @impl Bonny.Controller
   def reconcile(payload) do
-    inst(payload, :reconciled)
+    dispatch(payload, :reconciled)
     do_apply(payload)
   end
 
@@ -92,11 +92,11 @@ defmodule Ballast.Controller.V1.PoolPolicy do
          {:ok, policy} <- PoolPolicy.changesets(policy),
          {succeeded, failed} <- PoolPolicy.apply(policy) do
       PoolPolicy.CooldownCache.ran(policy)
-      inst(policy.name, :applied, %{succeeded: succeeded, failed: failed})
+      dispatch(policy.name, :applied, %{succeeded: length(succeeded), failed: length(failed)})
       :ok
     else
       {:error, :cooling_down} ->
-        inst(policy.name, :backed_off)
+        dispatch(policy.name, :backed_off)
         :ok
 
       :error ->
