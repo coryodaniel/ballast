@@ -74,13 +74,13 @@ rm /tmp/ballast-keys.json
 
 A kustomization [`base`](./manifests/base/kustomization.yaml) is included that deploys:
 
-- [`ClusterRole](./manifests/base/cluster_role.yaml)
-- [`ClusterRoleBinding](./manifests/base/cluster_role_binding.yaml)
-- [`CustomResourceDefinition](./manifests/base/custom_resource_definition.yaml)
-- [`Deployment](./manifests/base/deployment.yaml)
-- [`PodDisruptionBudget](./manifests/base/pod_disruption_budget.yaml)
-- [`Service](./manifests/base/service_account.yaml)
-- [`Service](./manifests/base/service.yaml)
+- [`ClusterRole`](./manifests/base/cluster_role.yaml)
+- [`ClusterRoleBinding`](./manifests/base/cluster_role_binding.yaml)
+- [`CustomResourceDefinition`](./manifests/base/custom_resource_definition.yaml)
+- [`Deployment`](./manifests/base/deployment.yaml)
+- [`PodDisruptionBudget`](./manifests/base/pod_disruption_budget.yaml)
+- [`ServiceAccount`](./manifests/base/service_account.yaml)
+- [`Service`](./manifests/base/service.yaml)
 
 The kustomization file expects `secret/ballast-operator-sa-keys` (created above) to exist in the same namespace the operator is deployed in.
 
