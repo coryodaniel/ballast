@@ -20,9 +20,7 @@ defmodule Ballast.NodePool.Adapters.GKE do
     iex> Ballast.NodePool.Adapters.GKE.label_selector()
     "cloud.google.com/gke-nodepool"
   """
-  def label_selector() do
-    "cloud.google.com/gke-nodepool"
-  end
+  def label_selector(), do: "cloud.google.com/gke-nodepool"
 
   @impl true
   @spec label_selector(Ballast.NodePool.t()) :: binary

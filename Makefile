@@ -4,7 +4,7 @@
 .PHONY: dev.policy.apply dev.policy.delete
 .PHONY: dev.scale.down dev.scale.start dev.scale.totals dev.scale.up dev.scale.where
 .PHONY: dev.start.iex dev.start.in-cluster
-.PHONY: pools.roll.od-n1-1 pools.roll.od-n1-2 pools.roll.preemptible
+.PHONY: pools.roll.od-n1-1 pools.roll.pvm-n1-2 pools.roll.pvm-n1-2
 .PHONY: pools.sourcepool.enable pools.sourcepool.disable
 
 IMAGE=quay.io/coryodaniel/ballast
@@ -97,7 +97,7 @@ dev.scale.where: ## Show which nodes scaled nginx test is on
 	kubectl get pods -o wide --sort-by="{.spec.nodeName}" --chunk-size=0
 
 dev.scale.totals: ## Show count of pods on node pools
-	$(MAKE) dev.scale.where | grep -Fo -e other -e preemptible -e od-n1-1 -e od-n1-2 | uniq -c
+	$(MAKE) dev.scale.where | grep -Fo -e other -e od-n1-1 -e pvm-n1-1 -e pvm-n1-2 | uniq -c
 
 dev.start.iex: ## Deploys CRD and RBAC to kubectl current context, but runs ballast in iex
 	- rm manifest.yaml
@@ -116,7 +116,7 @@ dev.svc-metrics.forward: ## Forward the remote k8s ballast-metrics service to lo
 
 ## Managed Pools
 
-SOURCE_POOL=$(shell kubectl get nodes | grep preemptible | awk '{print $$1}')
+SOURCE_POOL=$(shell kubectl get nodes | grep od-n | awk '{print $$1}')
 pools.sourcepool.disable: ## Disable the source pool
 	for node in ${SOURCE_POOL} ; do (kubectl drain $$node --force --ignore-daemonsets &); done
 
@@ -124,14 +124,14 @@ pools.sourcepool.enable: ## Enabled the source pool
 	for node in ${SOURCE_POOL} ; do (kubectl uncordon $$node &); done
 
 pools.nodes.current: ## Show number of nodes in pool
-	kubectl get nodes | grep -Fo -e other -e preemptible -e od-n1-1 -e od-n1-2 | uniq -c
+	kubectl get nodes | grep -Fo -e other -e od-n1-1 -e pvm-n1-1 -e pvm-n1-2 | uniq -c
 
 pools.roll.od-n1-1: ## Rolling replace the od-n1-1 managed node pool
 pools.roll.od-n1-1: _roll_pool.od-n1-1
-pools.roll.od-n1-2: ## Rolling replace the od-n1-2 managed node pool
-pools.roll.od-n1-2: _roll_pool.od-n1-2
-pools.roll.preemptible: ## Rolling replace the preemptible (source) node pool
-pools.roll.preemptible: _roll_pool.preemptible
+pools.roll.pvm-n1-1: ## Rolling replace the pvm-n1-1 managed node pool
+pools.roll.pvm-n1-1: _roll_pool.pvm-n1-1
+pools.roll.pvm-n1-2: ## Rolling replace the pvm-n1-2 managed node pool
+pools.roll.pvm-n1-2: _roll_pool.pvm-n1-2
 
 _roll_pool.%:
 	gcloud compute instance-groups managed list |\

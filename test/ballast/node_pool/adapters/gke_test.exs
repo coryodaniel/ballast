@@ -8,7 +8,7 @@ defmodule Ballast.NodePool.Adapters.GKETest do
 
   defp config() do
     gcp_project = System.get_env("GCP_PROJECT")
-    {gcp_project, "us-central1-a", "ballast", "ballast-od-n1-1"}
+    {gcp_project, "us-central1-a", "ballast", "ballast-pvm-n1-1"}
   end
 
   describe "autoscaling_enabled?/1" do
@@ -37,8 +37,10 @@ defmodule Ballast.NodePool.Adapters.GKETest do
     test "when autoscaling is disabled" do
       {:ok, conn} = Ballast.conn()
       {project, location, cluster, _} = config()
-      pool = "ballast-od-n1-2"
-      node_pool = NodePool.new(project, location, cluster, pool)
+      pool = "ballast-pvm-n1-2"
+      
+      data = %{}
+      node_pool = NodePool.new(project, location, cluster, pool, data)
 
       managed_pool = %Ballast.PoolPolicy.ManagedPool{pool: node_pool, minimum_percent: 10, minimum_instances: 1}
       source_pool = %Ballast.NodePool{instance_count: 10}

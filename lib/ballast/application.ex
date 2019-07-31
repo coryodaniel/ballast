@@ -13,7 +13,6 @@ defmodule Ballast.Application do
 
     children = [
       {Ballast.PoolPolicy.CooldownCache, []}
-      # {Telemetry.Metrics.ConsoleReporter, metrics: metrics}
     ]
 
     opts = [strategy: :one_for_one, name: Ballast.Supervisor]

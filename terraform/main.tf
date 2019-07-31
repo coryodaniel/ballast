@@ -10,7 +10,15 @@ locals {
   node_group = "ballast-example-group"
 }
 
+resource "google_project_service" "container" {
+  service = "container.googleapis.com"
+
+  disable_dependent_services = false
+  disable_on_destroy = false
+}
+
 resource "google_container_cluster" "main" {
+  depends_on = ["google_project_service.container"]
   name                     = "${var.gke_cluster_name}"
   location                 = "${local.location}"
   min_master_version       = "latest"
@@ -23,37 +31,6 @@ resource "google_container_cluster" "main" {
 
     client_certificate_config {
       issue_client_certificate = false
-    }
-  }
-}
-
-resource "google_container_node_pool" "preemptible_nodes" {
-  name               = "${var.gke_cluster_name}-preemptible"
-  location           = "${local.location}"
-  cluster            = "${google_container_cluster.main.name}"
-  initial_node_count = 1
-
-  autoscaling {
-    min_node_count = 1
-    max_node_count = 20
-  }
-
-  management {
-    auto_repair  = true
-    auto_upgrade = true
-  }
-
-  node_config {
-    preemptible  = true
-    machine_type = "n1-standard-1"
-
-    metadata = {
-      disable-legacy-endpoints = "true"
-    }
-
-    labels = {
-      node-group = "${local.node_group}"
-      node-type  = "preemptible"
     }
   }
 }
@@ -88,8 +65,8 @@ resource "google_container_node_pool" "od-n1-1" {
   }
 }
 
-resource "google_container_node_pool" "od-n1-2" {
-  name               = "${var.gke_cluster_name}-od-n1-2"
+resource "google_container_node_pool" "pvm-n1-1" {
+  name               = "${var.gke_cluster_name}-pvm-n1-1"
   location           = "${local.location}"
   cluster            = "${google_container_cluster.main.name}"
   initial_node_count = 1
@@ -105,7 +82,38 @@ resource "google_container_node_pool" "od-n1-2" {
   }
 
   node_config {
-    preemptible  = false
+    preemptible  = true
+    machine_type = "n1-standard-1"
+
+    metadata = {
+      disable-legacy-endpoints = "true"
+    }
+
+    labels = {
+      node-group = "${local.node_group}"
+      node-type  = "preemptible"
+    }
+  }
+}
+
+resource "google_container_node_pool" "pvm-n1-2" {
+  name               = "${var.gke_cluster_name}-pvm-n1-2"
+  location           = "${local.location}"
+  cluster            = "${google_container_cluster.main.name}"
+  initial_node_count = 1
+
+  autoscaling {
+    min_node_count = 1
+    max_node_count = 20
+  }
+
+  management {
+    auto_repair  = true
+    auto_upgrade = true
+  }
+
+  node_config {
+    preemptible  = true
     machine_type = "n1-standard-2"
 
     metadata = {
@@ -114,6 +122,7 @@ resource "google_container_node_pool" "od-n1-2" {
 
     labels = {
       node-group = "${local.node_group}"
+      node-type  = "preemptible"
     }
   }
 }
@@ -150,9 +159,9 @@ data "template_file" "poolpolicy-yaml" {
     project        = "${var.gcp_project}"
     location       = "${local.location}"
     cluster        = "${google_container_cluster.main.name}"
-    source_pool    = "${google_container_node_pool.preemptible_nodes.name}"
-    managed_pool_1 = "${google_container_node_pool.od-n1-1.name}"
-    managed_pool_2 = "${google_container_node_pool.od-n1-2.name}"
+    source_pool    = "${google_container_node_pool.od-n1-1.name}"
+    managed_pool_1 = "${google_container_node_pool.pvm-n1-1.name}"
+    managed_pool_2 = "${google_container_node_pool.pvm-n1-2.name}"
   }
 }
 
