@@ -1,8 +1,6 @@
 # Ballast
 
-Ballast is a kubernetes operator that relatively scales GKE NodePools.
-
-It is particularly useful for running **preemptible** node pools with _on demand_ node pools as fallbacks to help optimize cost of kubernetes clusters.
+Ballast manages kubernetes node pools to give you the cost of preemptible nodes with the confidence of on demand nodes.
 
 - [Ballast](#Ballast)
   - [Getting Started](#Getting-Started)
@@ -111,22 +109,17 @@ spec:
   projectId: gcp-project-id-here
   location: us-central1-a # zone that main/source pool of preemptible nodes exist in
   clusterName: your-cluster-name
-  poolName: my-preemptible-pool # name of the main/source pool of preemptible nodes
+  poolName: my-main-pool # name of the main/source pool
   cooldownSeconds: 300
   managedPools: # list of pools to scale relative to main pool
-  - poolName: my-on-demand-n1-standard-1-pool
+  - poolName: pool-b
     minimumInstances: 1
     minimumPercent: 25
     location: us-central1-a
-  - poolName: my-on-demand-n1-standard-2-pool
+  - poolName: pool-c
     minimumInstances: 5
     minimumPercent: 50
     location: us-central1-a
-  - poolName: my-other-clusters-pool
-    minimumInstances: 5
-    minimumPercent: 50
-    location: us-east4-a
-    clusterName: my-other-cluster # supports scaling node-pools in other clusters
 ```
 
 Multiple managed pools can be specified. A mix of autoscaling and fixed size pools can be used, as well as pools of different instance types/sizes.
