@@ -80,9 +80,9 @@ defmodule Ballast.NodePool do
     measurements = %{duration: duration}
 
     case response do
-      {:ok, updated_pool} ->
-        Inst.provider_get_pool_succeeded(measurements, %{pool: updated_pool.name})
-        {:ok, updated_pool}
+      {:ok, pool_w_instance_count} ->
+        Inst.provider_get_pool_succeeded(measurements, %{pool: pool_w_instance_count.name})
+        {:ok, pool_w_instance_count}
 
       {:error, %Tesla.Env{status: status}} = error ->
         Inst.provider_get_pool_failed(measurements, %{status: status, pool: pool.name})

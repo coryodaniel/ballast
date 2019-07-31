@@ -10,6 +10,11 @@ defmodule Ballast.NodePool.Adapters.GKE do
   alias Ballast.NodePool
   alias GoogleApi.Container.V1.Api.Projects, as: Container
   alias GoogleApi.Compute.V1.Api.InstanceGroups
+  
+  # HACK: container_projects_locations_clusters_node_pools_get is in master, but there is a syntax error. 
+  # Manually including function here.
+  alias GoogleApi.Container.V1.Connection
+  alias GoogleApi.Gax.{Request, Response}
 
   @impl true
   @spec label_selector() :: binary
@@ -36,28 +41,7 @@ defmodule Ballast.NodePool.Adapters.GKE do
   def label_selector(%NodePool{name: name}) do
     "#{label_selector()}=#{name}"
   end
-
-  @impl true
-  @spec get(Ballast.NodePool.t(), Tesla.Client.t()) :: {:ok, Ballast.NodePool.t()} | {:error, Tesla.Env.t()}
-  def get(%NodePool{project: project, location: zone, cluster: cluster, name: name} = pool, conn) do
-    response = Container.container_projects_zones_clusters_node_pools_get(conn, project, zone, cluster, name)
-
-    with {:ok, data} <- response,
-         pool_with_data <- %NodePool{pool | data: data},
-         {:ok, instance_count} <- size(pool_with_data, conn) do
-      {:ok, %NodePool{pool_with_data | instance_count: instance_count}}
-    end
-  end
-
-  @impl true
-  @spec scale(Ballast.PoolPolicy.Changeset.t(), Tesla.Client.t()) :: {:ok, map} | {:error, Tesla.Env.t()}
-  def scale(%Ballast.PoolPolicy.Changeset{} = changeset, conn) do
-    case autoscaling_enabled?(changeset.pool) do
-      true -> set_autoscaling(changeset.pool, changeset.minimum_count, conn)
-      false -> set_size(changeset.pool, changeset.minimum_count, conn)
-    end
-  end
-
+  
   @doc """
   Generates the URL identifier for the GKE API
 
@@ -71,7 +55,40 @@ defmodule Ballast.NodePool.Adapters.GKE do
   @spec id(Ballast.NodePool.t()) :: String.t()
   def id(%NodePool{} = pool) do
     "projects/#{pool.project}/locations/#{pool.location}/clusters/#{pool.cluster}/nodePools/#{pool.name}"
+  end  
+
+  @impl true
+  @spec scale(Ballast.PoolPolicy.Changeset.t(), Tesla.Client.t()) :: {:ok, map} | {:error, Tesla.Env.t()}
+  def scale(%Ballast.PoolPolicy.Changeset{} = changeset, conn) do
+    case autoscaling_enabled?(changeset.pool) do
+      true -> set_autoscaling(changeset.pool, changeset.minimum_count, conn)
+      false -> set_size(changeset.pool, changeset.minimum_count, conn)
+    end
   end
+  
+  @impl true
+  @spec get(Ballast.NodePool.t(), Tesla.Client.t()) :: {:ok, Ballast.NodePool.t()} | {:error, Tesla.Env.t()}
+  def get(%NodePool{} = pool, conn) do
+    id = id(pool)
+    response = container_projects_locations_clusters_node_pools_get(conn, id)
+    
+    with {:ok, data} <- response,
+         pool_with_data <- %NodePool{pool | data: data},
+         {:ok, instance_count} <- size(pool_with_data, conn) do
+      {:ok, %NodePool{pool_with_data | instance_count: instance_count}}
+    end
+  end  
+  
+  @spec size(Ballast.NodePool.t(), Tesla.Client.t()) :: {:ok, integer} | {:error, Tesla.Env.t()} | {:error, atom}
+  defp size(%NodePool{data: %{instanceGroupUrls: urls}}, conn) do
+    url = List.first(urls)
+
+    # This can stay a zone based HTTP request. Its a call specifically to get the size of the IG in this zone.
+    with {:ok, project, zone, name} <- parse_instance_group_manager_params(url),
+         {:ok, %{size: size}} <- InstanceGroups.compute_instance_groups_get(conn, project, zone, name) do
+      {:ok, size}
+    end
+  end  
 
   @spec set_autoscaling(Ballast.NodePool.t(), pos_integer, Tesla.Client.t()) :: :ok | {:error, Tesla.Env.t()}
   defp set_autoscaling(pool, minimum_count, conn) do
@@ -83,24 +100,14 @@ defmodule Ballast.NodePool.Adapters.GKE do
 
     Container.container_projects_locations_clusters_node_pools_set_autoscaling(conn, id, body: body)
   end
-
+  
   @spec set_size(Ballast.NodePool.t(), pos_integer, Tesla.Client.t()) :: :ok | {:error, Tesla.Env.t()}
   defp set_size(pool, minimum_count, conn) do
     id = id(pool)
     body = %{nodeCount: minimum_count}
 
     Container.container_projects_locations_clusters_node_pools_set_size(conn, id, body: body)
-  end
-
-  @spec size(Ballast.NodePool.t(), Tesla.Client.t()) :: {:ok, integer} | {:error, Tesla.Env.t()} | {:error, atom}
-  defp size(%NodePool{data: %{instanceGroupUrls: urls}}, conn) do
-    url = List.first(urls)
-
-    with {:ok, project, zone, name} <- parse_instance_group_manager_params(url),
-         {:ok, %{size: size}} <- InstanceGroups.compute_instance_groups_get(conn, project, zone, name) do
-      {:ok, size}
-    end
-  end
+  end  
 
   @doc """
   Parses a Google API `instanceGroupUrl` into arguments for `GoogleApi.Compute.V1.Api.InstanceGroups`.
@@ -130,4 +137,42 @@ defmodule Ballast.NodePool.Adapters.GKE do
           {:ok, binary, binary, binary} | {:error, :invalid_instance_group_url}
   defp validate_instance_group_manager_params(%{"project" => p, "zone" => z, "name" => n}), do: {:ok, p, z, n}
   defp validate_instance_group_manager_params(_), do: {:error, :invalid_instance_group_url}
+  
+  # HACK
+  def container_projects_locations_clusters_node_pools_get(
+        connection,
+        name,
+        optional_params \\ [],
+        opts \\ []
+      ) do
+    optional_params_config = %{
+      :"$.xgafv" => :query,
+      :access_token => :query,
+      :alt => :query,
+      :callback => :query,
+      :fields => :query,
+      :key => :query,
+      :oauth_token => :query,
+      :prettyPrint => :query,
+      :quotaUser => :query,
+      :uploadType => :query,
+      :upload_protocol => :query,
+      :clusterId => :query,
+      :nodePoolId => :query,
+      :projectId => :query,
+      :zone => :query
+    }
+
+    request =
+      Request.new()
+      |> Request.method(:get)
+      |> Request.url("/v1/{+name}", %{
+        "name" => URI.encode(name, &URI.char_unreserved?/1)
+      })
+      |> Request.add_optional_params(optional_params_config, optional_params)
+
+    connection
+    |> Connection.execute(request)
+    |> Response.decode(opts ++ [struct: %GoogleApi.Container.V1.Model.NodePool{}])
+  end
 end
