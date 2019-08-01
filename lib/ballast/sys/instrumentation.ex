@@ -1,7 +1,7 @@
 defmodule Ballast.Sys.Instrumentation do
   @moduledoc false
   use Notion, name: :ballast, metadata: %{}
-  
+
   @doc "Pod eviction succceeded"
   defevent([:pod, :eviction, :succeeded])
 

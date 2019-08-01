@@ -14,14 +14,14 @@ defmodule Ballast.NodePool do
   defstruct [:cluster, :instance_count, :project, :location, :name, :data, :under_pressure]
 
   @typedoc "Node pool metadata"
-  @type t :: %NodePool{
+  @type t :: %__MODULE__{
           cluster: String.t(),
           project: String.t(),
           location: String.t(),
           instance_count: integer | nil,
           name: String.t(),
           data: map | nil,
-          under_pressure: boolean
+          under_pressure: boolean | nil
         }
 
   @doc """
@@ -33,7 +33,7 @@ defmodule Ballast.NodePool do
       %Ballast.NodePool{cluster: "foo", project: "bar", location: "baz", name: "qux", data: %{}}
   """
   @spec new(map) :: t
-  def new(%{"spec" => spec}), do: NodePool.new(spec)
+  def new(%{"spec" => spec}), do: new(spec)
 
   def new(%{"projectId" => p, "location" => l, "clusterName" => c, "poolName" => n}), do: new(p, l, c, n)
 
@@ -158,7 +158,7 @@ defmodule Ballast.NodePool do
   @doc """
   Get the nodes from the kubernetes API matching the provider's label selector.
   """
-  @spec nodes(Ballast.NodePool.t()) :: list(map)
+  @spec nodes(Ballast.NodePool.t()) :: Enumerable.t()
   def nodes(%Ballast.NodePool{} = pool) do
     label_selector = adapter_for(pool).label_selector(pool)
     op = K8s.Client.list("v1", :nodes)

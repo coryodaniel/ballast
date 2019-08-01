@@ -8,7 +8,7 @@ defmodule Ballast.NodePool.Adapters.GKETest do
 
   defp config() do
     gcp_project = System.get_env("GCP_PROJECT")
-    {gcp_project, "us-central1-a", "ballast", "ballast-pvm-n1-1"}
+    {gcp_project, "us-central1", "ballast", "ballast-pvm-n1-1"}
   end
 
   describe "autoscaling_enabled?/1" do
@@ -38,7 +38,7 @@ defmodule Ballast.NodePool.Adapters.GKETest do
       {:ok, conn} = Ballast.conn()
       {project, location, cluster, _} = config()
       pool = "ballast-pvm-n1-2"
-      
+
       data = %{}
       node_pool = NodePool.new(project, location, cluster, pool, data)
 

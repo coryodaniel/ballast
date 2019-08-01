@@ -1,12 +1,10 @@
 provider "google" {
   version     = "~> 2.9"
-  region      = "${var.gcp_region}"
   project     = "${var.gcp_project}"
   credentials = "${file(var.gcp_credentials_path)}"
 }
 
 locals {
-  location   = "${var.gcp_region}-a"
   node_group = "ballast-example-group"
 }
 
@@ -20,7 +18,7 @@ resource "google_project_service" "container" {
 resource "google_container_cluster" "main" {
   depends_on = ["google_project_service.container"]
   name                     = "${var.gke_cluster_name}"
-  location                 = "${local.location}"
+  location                 = "${var.gcp_location}"
   min_master_version       = "latest"
   remove_default_node_pool = true
   initial_node_count       = 1
@@ -37,7 +35,7 @@ resource "google_container_cluster" "main" {
 
 resource "google_container_node_pool" "od-n1-1" {
   name               = "${var.gke_cluster_name}-od-n1-1"
-  location           = "${local.location}"
+  location           = "${var.gcp_location}"
   cluster            = "${google_container_cluster.main.name}"
   initial_node_count = 1
 
@@ -67,7 +65,7 @@ resource "google_container_node_pool" "od-n1-1" {
 
 resource "google_container_node_pool" "pvm-n1-1" {
   name               = "${var.gke_cluster_name}-pvm-n1-1"
-  location           = "${local.location}"
+  location           = "${var.gcp_location}"
   cluster            = "${google_container_cluster.main.name}"
   initial_node_count = 1
 
@@ -98,14 +96,14 @@ resource "google_container_node_pool" "pvm-n1-1" {
 
 resource "google_container_node_pool" "pvm-n1-2" {
   name               = "${var.gke_cluster_name}-pvm-n1-2"
-  location           = "${local.location}"
+  location           = "${var.gcp_location}"
   cluster            = "${google_container_cluster.main.name}"
   initial_node_count = 1
 
-  autoscaling {
-    min_node_count = 1
-    max_node_count = 20
-  }
+  # autoscaling {
+  #   min_node_count = 1
+  #   max_node_count = 20
+  # }
 
   management {
     auto_repair  = true
@@ -129,7 +127,7 @@ resource "google_container_node_pool" "pvm-n1-2" {
 
 resource "google_container_node_pool" "other" {
   name               = "${var.gke_cluster_name}-other"
-  location           = "${local.location}"
+  location           = "${var.gcp_location}"
   cluster            = "${google_container_cluster.main.name}"
   initial_node_count = 1
 
@@ -157,7 +155,7 @@ data "template_file" "poolpolicy-yaml" {
 
   vars = {
     project        = "${var.gcp_project}"
-    location       = "${local.location}"
+    location       = "${var.gcp_location}"
     cluster        = "${google_container_cluster.main.name}"
     source_pool    = "${google_container_node_pool.od-n1-1.name}"
     managed_pool_1 = "${google_container_node_pool.pvm-n1-1.name}"

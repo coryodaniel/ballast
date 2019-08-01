@@ -1,6 +1,7 @@
-variable "gcp_region" {
-  description = "GCP Region"
+variable "gcp_location" {
+  description = "GCP Region or Zone"
   default     = "us-central1"
+  #default     = "us-central1-a"
 }
 
 variable "gcp_project" {

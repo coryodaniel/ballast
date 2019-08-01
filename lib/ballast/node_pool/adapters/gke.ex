@@ -10,7 +10,7 @@ defmodule Ballast.NodePool.Adapters.GKE do
   alias Ballast.NodePool
   alias GoogleApi.Container.V1.Api.Projects, as: Container
   alias GoogleApi.Compute.V1.Api.InstanceGroups
-  
+
   # HACK: container_projects_locations_clusters_node_pools_get is in master, but there is a syntax error. 
   # Manually including function here.
   alias GoogleApi.Container.V1.Connection
@@ -41,7 +41,7 @@ defmodule Ballast.NodePool.Adapters.GKE do
   def label_selector(%NodePool{name: name}) do
     "#{label_selector()}=#{name}"
   end
-  
+
   @doc """
   Generates the URL identifier for the GKE API
 
@@ -55,7 +55,7 @@ defmodule Ballast.NodePool.Adapters.GKE do
   @spec id(Ballast.NodePool.t()) :: String.t()
   def id(%NodePool{} = pool) do
     "projects/#{pool.project}/locations/#{pool.location}/clusters/#{pool.cluster}/nodePools/#{pool.name}"
-  end  
+  end
 
   @impl true
   @spec scale(Ballast.PoolPolicy.Changeset.t(), Tesla.Client.t()) :: {:ok, map} | {:error, Tesla.Env.t()}
@@ -65,30 +65,37 @@ defmodule Ballast.NodePool.Adapters.GKE do
       false -> set_size(changeset.pool, changeset.minimum_count, conn)
     end
   end
-  
+
   @impl true
   @spec get(Ballast.NodePool.t(), Tesla.Client.t()) :: {:ok, Ballast.NodePool.t()} | {:error, Tesla.Env.t()}
   def get(%NodePool{} = pool, conn) do
     id = id(pool)
     response = container_projects_locations_clusters_node_pools_get(conn, id)
-    
+
     with {:ok, data} <- response,
          pool_with_data <- %NodePool{pool | data: data},
-         {:ok, instance_count} <- size(pool_with_data, conn) do
+         instance_count <- get_node_pool_size(pool_with_data, conn) do
       {:ok, %NodePool{pool_with_data | instance_count: instance_count}}
     end
-  end  
-  
-  @spec size(Ballast.NodePool.t(), Tesla.Client.t()) :: {:ok, integer} | {:error, Tesla.Env.t()} | {:error, atom}
-  defp size(%NodePool{data: %{instanceGroupUrls: urls}}, conn) do
-    url = List.first(urls)
+  end
 
-    # This can stay a zone based HTTP request. Its a call specifically to get the size of the IG in this zone.
+  @spec get_node_pool_size(Ballast.NodePool.t(), Tesla.Client.t()) :: integer
+  defp get_node_pool_size(%NodePool{data: %{instanceGroupUrls: urls}}, conn) do
+    Enum.reduce(urls, 0, fn url, agg -> agg + get_instance_group_size(url, conn) end)
+  end
+
+  @spec get_instance_group_size(String.t(), Tesla.Client.t()) :: integer
+  defp get_instance_group_size(url, conn) do
     with {:ok, project, zone, name} <- parse_instance_group_manager_params(url),
          {:ok, %{size: size}} <- InstanceGroups.compute_instance_groups_get(conn, project, zone, name) do
-      {:ok, size}
+      Ballast.Sys.Instrumentation.provider_get_pool_size_succeeded(%{}, %{})
+      size
+    else
+      _ ->
+        Ballast.Sys.Instrumentation.provider_get_pool_size_failed(%{}, %{})
+        0
     end
-  end  
+  end
 
   @spec set_autoscaling(Ballast.NodePool.t(), pos_integer, Tesla.Client.t()) :: :ok | {:error, Tesla.Env.t()}
   defp set_autoscaling(pool, minimum_count, conn) do
@@ -100,14 +107,14 @@ defmodule Ballast.NodePool.Adapters.GKE do
 
     Container.container_projects_locations_clusters_node_pools_set_autoscaling(conn, id, body: body)
   end
-  
+
   @spec set_size(Ballast.NodePool.t(), pos_integer, Tesla.Client.t()) :: :ok | {:error, Tesla.Env.t()}
   defp set_size(pool, minimum_count, conn) do
     id = id(pool)
     body = %{nodeCount: minimum_count}
 
     Container.container_projects_locations_clusters_node_pools_set_size(conn, id, body: body)
-  end  
+  end
 
   @doc """
   Parses a Google API `instanceGroupUrl` into arguments for `GoogleApi.Compute.V1.Api.InstanceGroups`.
@@ -137,8 +144,9 @@ defmodule Ballast.NodePool.Adapters.GKE do
           {:ok, binary, binary, binary} | {:error, :invalid_instance_group_url}
   defp validate_instance_group_manager_params(%{"project" => p, "zone" => z, "name" => n}), do: {:ok, p, z, n}
   defp validate_instance_group_manager_params(_), do: {:error, :invalid_instance_group_url}
-  
+
   # HACK
+  @spec container_projects_locations_clusters_node_pools_get(Tesla.Client.t(), String.t(), Keyword.t() | nil, Keyword.t() | nil) :: {:ok, %GoogleApi.Container.V1.Model.NodePool{}} | {:error, any()}
   def container_projects_locations_clusters_node_pools_get(
         connection,
         name,

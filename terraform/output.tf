@@ -1,5 +1,5 @@
 output "gke_auth_command" {
-  value = "gcloud container clusters get-credentials ${google_container_cluster.main.name} --zone ${google_container_cluster.main.zone}"
+  value = "gcloud container clusters get-credentials ${google_container_cluster.main.name} --location ${google_container_cluster.main.location}"
 }
 
 output "gke_cluster_name" {
