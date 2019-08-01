@@ -133,8 +133,8 @@
         #
         # Controversial and experimental checks (opt-in, just remove `, false`)
         #
-        {Credo.Check.Consistency.MultiAliasImportRequireUse, false},
-        {Credo.Check.Design.DuplicatedCode, false},
+        {Credo.Check.Consistency.MultiAliasImportRequireUse},
+        {Credo.Check.Design.DuplicatedCode},
         {Credo.Check.Readability.Specs}
       ]
     }

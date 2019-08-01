@@ -86,7 +86,7 @@ dev.scale.1000: ## Scale nginx to 1000 replicas
 	REPLICAS=1000 $(MAKE) dev.scale.up
 
 dev.scale.up: ## Scale nginx deployment to a lot
-dev.scale.up: dev.scale.start
+dev.scale.up: guard-REPLICAS
 	echo "Scaling to ${REPLICAS} replicas"
 	kubectl scale --replicas=${REPLICAS} -f ./test-scale-up.yaml
 
@@ -134,11 +134,9 @@ pools.roll.pvm-n1-2: ## Rolling replace the pvm-n1-2 managed node pool
 pools.roll.pvm-n1-2: _roll_pool.pvm-n1-2
 
 _roll_pool.%:
-	-gcloud compute instance-groups managed list |\
+	gcloud compute instance-groups managed list |\
 		grep gke-ballast-ballast-$* |\
-		awk '{print $$1}' |\
-		xargs -I '{}' gcloud compute instance-groups managed rolling-action replace '{}' --zone us-central1-a --max-unavailable 100 --max-surge 1
-	-gcloud compute instance-groups managed list |\
-		grep gke-ballast-ballast-$* |\
-		awk '{print $$1}' |\
-		xargs -I '{}' gcloud compute instance-groups managed rolling-action replace '{}' --region us-central1 --max-unavailable 100 --max-surge 1
+		awk '{print $$1, $$2}' |\
+		xargs -n 2 bash -c 'gcloud compute instance-groups managed rolling-action replace $$0 --zone $$1 --max-unavailable 100 --max-surge 1'
+
+		

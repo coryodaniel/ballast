@@ -41,7 +41,7 @@ resource "google_container_node_pool" "od-n1-1" {
 
   autoscaling {
     min_node_count = 1
-    max_node_count = 20
+    max_node_count = 5
   }
 
   management {
@@ -71,7 +71,7 @@ resource "google_container_node_pool" "pvm-n1-1" {
 
   autoscaling {
     min_node_count = 1
-    max_node_count = 20
+    max_node_count = 5
   }
 
   management {
@@ -100,10 +100,10 @@ resource "google_container_node_pool" "pvm-n1-2" {
   cluster            = "${google_container_cluster.main.name}"
   initial_node_count = 1
 
-  # autoscaling {
-  #   min_node_count = 1
-  #   max_node_count = 20
-  # }
+  autoscaling {
+    min_node_count = 1
+    max_node_count = 5
+  }
 
   management {
     auto_repair  = true

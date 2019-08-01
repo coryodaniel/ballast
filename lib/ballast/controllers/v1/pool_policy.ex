@@ -106,10 +106,14 @@ defmodule Ballast.Controller.V1.PoolPolicy do
 
   @spec handle_eviction(Ballast.PoolPolicy.t()) :: :ok
   defp handle_eviction(%Ballast.PoolPolicy{enable_auto_eviction: true} = policy) do
-    Enum.each(policy.managed_pools, fn managed_pool ->
-      {:ok, pods} = Ballast.Evictor.evictable(match: managed_pool.pool.name)
-      Enum.each(pods, &Ballast.Kube.Eviction.create/1)
-    end)
+    {:ok, pods} = Ballast.Evictor.evictable(match: policy.pool.name)
+    Enum.each(pods, &Ballast.Kube.Eviction.create/1)
+
+    # TODO: which pools should support `enableAutoEviction`?
+    # Enum.each(policy.managed_pools, fn managed_pool ->
+    #   {:ok, pods} = Ballast.Evictor.evictable(match: managed_pool.pool.name)
+    #   Enum.each(pods, &Ballast.Kube.Eviction.create/1)
+    # end)
 
     :ok
   end

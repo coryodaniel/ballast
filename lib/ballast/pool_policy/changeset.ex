@@ -31,12 +31,14 @@ defmodule Ballast.PoolPolicy.Changeset do
     %Changeset{
       pool: managed_pool.pool,
       minimum_count: calculated_minimum_count,
-      strategy: strategy(managed_pool, source_pool)
+      strategy: strategy(managed_pool.pool, source_pool)
     }
   end
 
   @doc """
   Rules:
+  * If source pool is zero, assume scale to 0 and :scale_down 
+    * NOTE: this is possible *not* true for Preemptible source pools 
   * If the source pool has more nodes
     * calculate and scale UP that managed pool's minimum count. `:scale_up`
   * Else; source is lower because its scaling down, or preempted/stockedout
@@ -45,37 +47,36 @@ defmodule Ballast.PoolPolicy.Changeset do
     * Else
       * `:scale_down` calculate and scale DOWN that managed pool's minimum count.
 
-  ## Examples
-    When the source pool's instance count is greater
-      iex> managed_pool = %Ballast.PoolPolicy.ManagedPool{pool: %Ballast.NodePool{instance_count: 5}}
+  ## Examples     
+    When the source pool instance count is zero
+      iex> managed_pool = %Ballast.NodePool{instance_count: 5}
+      ...> source_pool = %Ballast.NodePool{instance_count: 0}
+      ...> Ballast.PoolPolicy.Changeset.strategy(managed_pool, source_pool)
+      :scale_down
+      
+    When the source pool instance count is greater
+      iex> managed_pool = %Ballast.NodePool{instance_count: 5}
       ...> source_pool = %Ballast.NodePool{instance_count: 10, under_pressure: false}
       ...> Ballast.PoolPolicy.Changeset.strategy(managed_pool, source_pool)
       :scale_up
 
-    When the source pool's instance count is lower and the source pool is under pressure
-      iex> managed_pool = %Ballast.PoolPolicy.ManagedPool{pool: %Ballast.NodePool{instance_count: 5}}
+    When the source pool instance count is lower and the source pool is under pressure
+      iex> managed_pool = %Ballast.NodePool{instance_count: 5}
       ...> source_pool = %Ballast.NodePool{instance_count: 1, under_pressure: true}
       ...> Ballast.PoolPolicy.Changeset.strategy(managed_pool, source_pool)
       :nothing
 
-    When the source pool's instance count is lower and the source pool is not under pressure
-      iex> managed_pool = %Ballast.PoolPolicy.ManagedPool{pool: %Ballast.NodePool{instance_count: 5}}
+    When the source pool instance count is lower and the source pool is not under pressure
+      iex> managed_pool = %Ballast.NodePool{instance_count: 5}
       ...> source_pool = %Ballast.NodePool{instance_count: 1, under_pressure: false}
       ...> Ballast.PoolPolicy.Changeset.strategy(managed_pool, source_pool)
       :scale_down
   """
-  @spec strategy(ManagedPool.t(), NodePool.t()) :: :nothing | {:scale, :up | :down}
-  def strategy(%ManagedPool{pool: pool} = managed_pool, source_pool) do
-    if source_pool.instance_count >= managed_pool.pool.instance_count do
-      :scale_up
-    else
-      if source_pool.under_pressure do
-        :nothing
-      else
-        :scale_down
-      end
-    end
-  end
+  @spec strategy(NodePool.t(), NodePool.t()) :: :nothing | :scale_up | :scale_down
+  def strategy(_, %NodePool{instance_count: 0}), do: :scale_down
+  def strategy(%NodePool{instance_count: mic}, %NodePool{instance_count: sic}) when sic >= mic, do: :scale_up
+  def strategy(_, %NodePool{under_pressure: true}), do: :nothing
+  def strategy(_, _), do: :scale_down
 
   @doc """
   Calculates the managed pool's new minimum instance count

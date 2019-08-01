@@ -102,9 +102,7 @@ defmodule Ballast.NodePool.Adapters.GKE do
     id = id(pool)
     old_autoscaling = pool.data.autoscaling
     new_autoscaling = Map.put(old_autoscaling, :minNodeCount, minimum_count)
-
     body = %{autoscaling: new_autoscaling}
-
     Container.container_projects_locations_clusters_node_pools_set_autoscaling(conn, id, body: body)
   end
 
@@ -112,7 +110,6 @@ defmodule Ballast.NodePool.Adapters.GKE do
   defp set_size(pool, minimum_count, conn) do
     id = id(pool)
     body = %{nodeCount: minimum_count}
-
     Container.container_projects_locations_clusters_node_pools_set_size(conn, id, body: body)
   end
 
@@ -146,7 +143,12 @@ defmodule Ballast.NodePool.Adapters.GKE do
   defp validate_instance_group_manager_params(_), do: {:error, :invalid_instance_group_url}
 
   # HACK
-  @spec container_projects_locations_clusters_node_pools_get(Tesla.Client.t(), String.t(), Keyword.t() | nil, Keyword.t() | nil) :: {:ok, %GoogleApi.Container.V1.Model.NodePool{}} | {:error, any()}
+  @spec container_projects_locations_clusters_node_pools_get(
+          Tesla.Client.t(),
+          String.t(),
+          Keyword.t() | nil,
+          Keyword.t() | nil
+        ) :: {:ok, %GoogleApi.Container.V1.Model.NodePool{}} | {:error, any()}
   def container_projects_locations_clusters_node_pools_get(
         connection,
         name,
@@ -174,9 +176,7 @@ defmodule Ballast.NodePool.Adapters.GKE do
     request =
       Request.new()
       |> Request.method(:get)
-      |> Request.url("/v1/{+name}", %{
-        "name" => URI.encode(name, &URI.char_unreserved?/1)
-      })
+      |> Request.url("/v1/{+name}", %{"name" => URI.encode(name, &URI.char_unreserved?/1)})
       |> Request.add_optional_params(optional_params_config, optional_params)
 
     connection

@@ -35,9 +35,15 @@ defmodule Ballast.NodePool do
   @spec new(map) :: t
   def new(%{"spec" => spec}), do: new(spec)
 
-  def new(%{"projectId" => p, "location" => l, "clusterName" => c, "poolName" => n}), do: new(p, l, c, n)
+  def new(%{"projectId" => p, "location" => l, "clusterName" => c, "poolName" => n} = spec) do
+    new(p, l, c, n)
+  end
 
-  def new(_invalid), do: %__MODULE__{}
+  def new(_invalid) do
+    # TODO: emit formatting error (should ship a openapi spec w/ bonny)
+    # TODO: how to handle return value here ...?
+    %__MODULE__{}
+  end
 
   @doc """
   Creates a `Ballast.NodePool` struct with or without metadata. Used for `get` queries and responses.
@@ -59,8 +65,8 @@ defmodule Ballast.NodePool do
   @doc """
   Updates a `NodePool`'s `:under_pressure` field based on `under_pressure?/1`
   """
-  @spec set_under_pressure(NodePool.t()) :: NodePool.t()
-  def set_under_pressure(pool) do
+  @spec set_pressure_status(NodePool.t()) :: NodePool.t()
+  def set_pressure_status(pool) do
     under_pressure = NodePool.under_pressure?(pool)
     %NodePool{pool | under_pressure: under_pressure}
   end

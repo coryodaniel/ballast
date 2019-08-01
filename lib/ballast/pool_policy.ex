@@ -28,7 +28,7 @@ defmodule Ballast.PoolPolicy do
 
     with {:ok, conn} <- Ballast.conn(),
          {:ok, pool} <- NodePool.get(pool, conn),
-         pool <- NodePool.set_under_pressure(pool) do
+         pool <- NodePool.set_pressure_status(pool) do
       managed_pools = make_managed_pools(resource)
       cooldown_seconds = get_in(resource, ["spec", "cooldownSeconds"]) || @default_cooldown_seconds
       enable_auto_eviction = get_in(resource, ["spec", "enableAutoEviction"]) || false

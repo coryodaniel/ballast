@@ -22,14 +22,14 @@ spec:
                 operator: In
                 values:
                 - ballast-example-group
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 1
-            preference:
-              matchExpressions:
-              - key: node-type
-                operator: In
-                values:
-                - preemptible
+          # preferredDuringSchedulingIgnoredDuringExecution:
+          # - weight: 1
+          #   preference:
+          #     matchExpressions:
+          #     - key: node-type
+          #       operator: In
+          #       values:
+          #       - preemptible
       containers:
       - name: nginx
         image: nginx:1.7.9
