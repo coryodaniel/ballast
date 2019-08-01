@@ -11,7 +11,9 @@ spec:
         secret:
           secretName: ballast-operator-sa-keys
       containers:
-      - env:
+      - name: ballast
+        image: quay.io/coryodaniel/ballast
+        env:
         - name: BALLAST_METRICS_PORT
           value: "9323"
         - name: GOOGLE_APPLICATION_CREDENTIALS
@@ -34,8 +36,6 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.serviceAccountName
-        image: quay.io/coryodaniel/ballast
-        name: ballast
         readinessProbe:
           httpGet:
             path: /metrics

@@ -19,6 +19,10 @@ guard-%: # Creates an environment variable requirement by setting a prereq of gu
 		exit 1;\
 	fi
 
+lazy:
+lazy: ## Find places where Ive been lazy
+	grep -R --include="*.ex" -E ":ok[^=].* = " ./lib | grep -v '\->'
+
 all: ## Lints, tests, compiles, and pushes "latest" docker tag.
 all: lint test compile build push
 
@@ -112,7 +116,6 @@ dev.start.in-cluster: ## Deploys "latest" docker image into kubectl current cont
 
 dev.svc-metrics.forward: ## Forward the remote k8s ballast-metrics service to localhost
 	kubectl port-forward service/ballast-metrics 9323:9323
-
 
 ## Managed Pools
 

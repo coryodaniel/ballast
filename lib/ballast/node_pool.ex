@@ -35,7 +35,7 @@ defmodule Ballast.NodePool do
   @spec new(map) :: t
   def new(%{"spec" => spec}), do: new(spec)
 
-  def new(%{"projectId" => p, "location" => l, "clusterName" => c, "poolName" => n} = spec) do
+  def new(%{"projectId" => p, "location" => l, "clusterName" => c, "poolName" => n}) do
     new(p, l, c, n)
   end
 

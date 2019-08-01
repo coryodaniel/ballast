@@ -1,4 +1,4 @@
-FROM elixir:1.8.1-alpine
+FROM elixir:1.9.1-alpine
 
 ENV MIX_ENV=prod \
     MIX_HOME=/opt/mix \
