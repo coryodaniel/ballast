@@ -129,8 +129,7 @@ Multiple managed pools can be specified. A mix of autoscaling and fixed size poo
 The following steps will cause Kubernetes to *prefer* scheduling workloads on your preemptible nodes, but schedule workloads on your on-demand pools when it must.
 
 1. Add the label `node-group:a-good-name-for-your-node-group` to **_all_** of your node pools that will be referenced in your `PoolPolicy`.
-2. Add the label `node-type:preemptible` to your main/source pool referenced in your `PoolPolicy`.
-3. Add the following affinity to your `Pod`, `Deployment`, or other workload..
+2. Add the following affinity to your `Pod`, `Deployment`, or other workload..
 
 ```yaml
 spec:
@@ -147,10 +146,12 @@ spec:
       - weight: 1
         preference:
           matchExpressions:
-          - key: node-type
+          - key: cloud.google.com/gke-preemptible
             operator: In
             values:
-            - "preemptible"
+            - "true"
+
+            
 ```
 
 ## Contributing

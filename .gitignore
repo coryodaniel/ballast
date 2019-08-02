@@ -35,3 +35,4 @@ terraform/ballast-poolpolicy.yaml
 # Ballast
 manifest.yaml
 env
+.iex.exs
