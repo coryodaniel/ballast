@@ -11,7 +11,7 @@ defmodule Ballast.NodePool do
   alias Ballast.PoolPolicy.Changeset
   alias Ballast.Sys.Instrumentation, as: Inst
 
-  defstruct [:cluster, :instance_count, :project, :location, :name, :data, :under_pressure]
+  defstruct [:cluster, :instance_count, :minimum_count, :project, :location, :name, :data, :under_pressure]
 
   @typedoc "Node pool metadata"
   @type t :: %__MODULE__{
@@ -19,6 +19,7 @@ defmodule Ballast.NodePool do
           project: String.t(),
           location: String.t(),
           instance_count: integer | nil,
+          minimum_count: integer | nil,
           name: String.t(),
           data: map | nil,
           under_pressure: boolean | nil
@@ -180,7 +181,8 @@ defmodule Ballast.NodePool do
   defp measurements_and_metadata(changeset) do
     measurements = %{
       managed_pool_current_count: changeset.pool.instance_count,
-      managed_pool_new_count: changeset.minimum_count
+      managed_pool_current_minimum_count: changeset.pool.minimum_count,
+      managed_pool_new_minimum_count: changeset.minimum_count
     }
 
     metadata = %{pool: changeset.pool.name, strategy: changeset.strategy}

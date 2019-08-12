@@ -55,6 +55,11 @@ push: ## Release 'latest' docker image
 push: guard-IMAGE
 	docker push ${IMAGE}:latest
 
+tag: guard-DOCKER_LABEL
+tag: ## Tag a release
+	docker tag ${IMAGE}:latest ${IMAGE}:${DOCKER_LABEL}
+	docker push ${IMAGE}:${DOCKER_LABEL}
+
 dev.cluster.apply: ## Create / Update development cluster
 dev.cluster.apply:
 	cd terraform && terraform init && \
