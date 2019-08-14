@@ -109,7 +109,7 @@ defmodule Ballast.Controller.V1.PoolPolicy do
     with {:ok, pods} <- Ballast.Evictor.evictable(match: policy.pool.name) do
       Enum.each(pods, &Ballast.Kube.Eviction.create/1)
     end
-    
+
     :ok
   end
 

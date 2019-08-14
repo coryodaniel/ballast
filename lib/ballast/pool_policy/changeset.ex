@@ -41,12 +41,14 @@ defmodule Ballast.PoolPolicy.Changeset do
     * NOTE: this is possible *not* true for Preemptible source pools 
   * If the source pool has more nodes
     * calculate and scale UP that managed pool's minimum count. `:scale_up`
-  * Else; source is lower because its scaling down, or preempted/stockedout
+  * Else; source is lower because its scaling down, or preempted/stockedout.
     * If source is under pressure
       * `:nothing` Nothing to do, autoscaler should be adding nodes to source and managed pools
     * Else
       * `:scale_down` calculate and scale DOWN that managed pool's minimum count.
+      * Note: There is a case when the source pools count is 0, the managed pool will be scaled down. This isn't optimal, but we dont know _why_ the source pool is zero. To mitigate scaling managed pools to zero, set the `minimumInstances`.
 
+  
   ## Examples     
     When the source pool instance count is zero
       iex> managed_pool = %Ballast.NodePool{instance_count: 5}

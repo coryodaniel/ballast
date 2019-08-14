@@ -22,8 +22,11 @@ defmodule Ballast.Evictor do
 
     case response do
       {:ok, response} ->
+        candidates = Map.get(response, "items")
+        candidate_count = length(candidates)
+        measurements = Map.put(measurements, :count, candidate_count)
         Inst.get_eviction_candidates_succeeded(measurements)
-        {:ok, Map.get(response, "items")}
+        {:ok, candidates}
 
       {:errror, %HTTPoison.Response{status_code: status}} = error ->
         Inst.get_eviction_candidates_failed(measurements, %{status: status})

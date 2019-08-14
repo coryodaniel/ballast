@@ -74,12 +74,12 @@ defmodule Ballast.NodePool.Adapters.GKE do
 
     with {:ok, data} <- response,
          pool_with_data <- %NodePool{pool | data: data},
-         minimum_count <- get_minimum_node_count(pool_with_data), 
+         minimum_count <- get_minimum_node_count(pool_with_data),
          instance_count <- get_node_pool_size(pool_with_data, conn) do
       {:ok, %NodePool{pool_with_data | instance_count: instance_count, minimum_count: minimum_count}}
     end
   end
-  
+
   @spec get_node_pool_size(Ballast.NodePool.t(), Tesla.Client.t()) :: integer
   defp get_node_pool_size(%NodePool{data: %{instanceGroupUrls: urls}}, conn) do
     Enum.reduce(urls, 0, fn url, agg -> agg + get_instance_group_size(url, conn) end)
@@ -89,22 +89,22 @@ defmodule Ballast.NodePool.Adapters.GKE do
   defp get_instance_group_size(url, conn) do
     with {:ok, project, zone, name} <- parse_instance_group_manager_params(url),
          {:ok, %{size: size}} <- InstanceGroups.compute_instance_groups_get(conn, project, zone, name) do
-      Ballast.Sys.Instrumentation.provider_get_pool_size_succeeded(%{}, %{})
+      Ballast.Sys.Instrumentation.provider_get_pool_size_succeeded(%{size: size}, %{name: name})
       size
     else
       _ ->
-        Ballast.Sys.Instrumentation.provider_get_pool_size_failed(%{}, %{})
+        Ballast.Sys.Instrumentation.provider_get_pool_size_failed(%{}, %{url: url})
         0
     end
   end
-  
+
   @spec get_minimum_node_count(Ballast.NodePool.t()) :: integer | nil
   defp get_minimum_node_count(%NodePool{data: %{autoscaling: %{minNodeCount: minimum_count, enabled: true}}}) do
     minimum_count
-  end  
-  
+  end
+
   defp get_minimum_node_count(_pool), do: nil
-  
+
   @spec set_autoscaling(Ballast.NodePool.t(), pos_integer, Tesla.Client.t()) :: :ok | {:error, Tesla.Env.t()}
   defp set_autoscaling(pool, minimum_count, conn) do
     id = id(pool)
