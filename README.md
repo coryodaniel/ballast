@@ -94,7 +94,7 @@ The operator exposes prometheus metrics on port 9323 at `/metrics`.
 - `BALLAST_DEBUG`=true
 - `GOOGLE_APPLICATION_CREDENTIALS`=/abs/path/to/creds.json
 
-## Managing Ballast PoolPolicies
+## Managing Ballast CRDs
 
 ### Example `PoolPolicy`
 
@@ -150,8 +150,32 @@ spec:
             operator: In
             values:
             - "true"
+```
 
-            
+### Example `EvictionPolicy`
+
+Ballast also supports a CRD called an `EvictionPolicy`. Eviction policies allow you to specify rules for evicting pods from nodes. This can be useful for eviction pods off of unpreferred nodes effectively implementing ~`preferredDuringSchedulingPreferredDuringExecution`.
+
+The schema is:
+
+- `mode` (*all*, *unpreferred*) evict off all nodes or only unpreferred nodes based on `preferredDuringSchedulingIgnoredDuringExecution`; Default: *all*
+- `maxLifetime` max lifetime of a pod matching `selector` ; Default: *600* seconds
+- `selector` matchLabel and matchExpressions for selecting pods to evict
+
+```yaml
+apiVersion: ballast.bonny.run/v1
+kind: EvictionPolicy
+metadata:
+  name: unpreferred-nodes-nginx
+spec:
+  mode: unpreferred 
+  maxLifetime: 600 
+  selector:
+    matchLabels:
+      app: nginx
+    matchExpressions:
+      - {key: tier, operator: In, values: [frontend]}
+      - {key: environment, operator: NotIn, values: [dev]}
 ```
 
 ## Contributing

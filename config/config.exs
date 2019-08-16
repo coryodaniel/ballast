@@ -8,6 +8,6 @@ config :bonny,
   reconcile_every: 30 * 1000,
   reconcile_batch_size: 10,
   watch_timeout: 60 * 1000,
-  controllers: [Ballast.Controller.V1.PoolPolicy]
+  controllers: [Ballast.Controller.V1.PoolPolicy, Ballast.Controller.V1.EvictionPolicy]
 
 import_config "#{Mix.env()}.exs"

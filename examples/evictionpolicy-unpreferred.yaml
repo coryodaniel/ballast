@@ -1,0 +1,13 @@
+apiVersion: ballast.bonny.run/v1
+kind: EvictionPolicy
+metadata:
+  name: unpreferred-nodes-nginx
+spec:
+  mode: unpreferred # unpreferred; evict off all nodes or only unpreferred nodes
+  maxLifetime: 30 # in seconds
+  selector:
+    matchLabels:
+      app: nginx
+    # matchExpressions:
+    #   - {key: tier, operator: In, values: [cache]}
+    #   - {key: environment, operator: NotIn, values: [dev]}
