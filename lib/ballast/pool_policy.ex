@@ -7,14 +7,13 @@ defmodule Ballast.PoolPolicy do
   alias Ballast.{NodePool, PoolPolicy}
   alias PoolPolicy.Changeset
 
-  defstruct name: nil, pool: nil, managed_pools: [], changesets: [], cooldown_seconds: nil, enable_auto_eviction: false
+  defstruct name: nil, pool: nil, managed_pools: [], changesets: [], cooldown_seconds: nil
 
   @typedoc "PoolPolicy"
   @type t :: %__MODULE__{
           name: nil | String.t(),
           pool: NodePool.t(),
           cooldown_seconds: pos_integer,
-          enable_auto_eviction: boolean,
           managed_pools: list(PoolPolicy.ManagedPool.t()),
           changesets: list(Changeset.t())
         }
@@ -31,14 +30,12 @@ defmodule Ballast.PoolPolicy do
          pool <- NodePool.set_pressure_status(pool) do
       managed_pools = make_managed_pools(resource)
       cooldown_seconds = get_in(resource, ["spec", "cooldownSeconds"]) || @default_cooldown_seconds
-      enable_auto_eviction = get_in(resource, ["spec", "enableAutoEviction"]) || false
 
       policy = %PoolPolicy{
         pool: pool,
         managed_pools: managed_pools,
         name: name,
-        cooldown_seconds: cooldown_seconds,
-        enable_auto_eviction: enable_auto_eviction
+        cooldown_seconds: cooldown_seconds
       }
 
       {:ok, policy}

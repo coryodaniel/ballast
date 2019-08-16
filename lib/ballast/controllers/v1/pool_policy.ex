@@ -18,8 +18,6 @@ defmodule Ballast.Controller.V1.PoolPolicy do
   }
 
   @rule {"", ["nodes"], ["list"]}
-  @rule {"", ["pods"], ["list"]}
-  @rule {"", ["pods/eviction"], ["create"]}
 
   @doc """
   Handles an `ADDED` event
@@ -86,8 +84,6 @@ defmodule Ballast.Controller.V1.PoolPolicy do
 
   @spec handle_policy(Ballast.PoolPolicy.t()) :: :ok | :error
   defp handle_policy(%Ballast.PoolPolicy{} = policy) do
-    handle_eviction(policy)
-
     with :ok <- PoolPolicy.CooldownCache.ready?(policy),
          {:ok, policy} <- PoolPolicy.changesets(policy),
          {succeeded, failed} <- PoolPolicy.apply(policy) do
@@ -102,18 +98,5 @@ defmodule Ballast.Controller.V1.PoolPolicy do
       :error ->
         :error
     end
-  end
-
-  @spec handle_eviction(Ballast.PoolPolicy.t()) :: :ok
-  defp handle_eviction(%Ballast.PoolPolicy{enable_auto_eviction: true} = policy) do
-    with {:ok, pods} <- Ballast.Evictor.evictable(match: policy.pool.name) do
-      Enum.each(pods, &Ballast.Kube.Eviction.create/1)
-    end
-
-    :ok
-  end
-
-  defp handle_eviction(_) do
-    :ok
   end
 end

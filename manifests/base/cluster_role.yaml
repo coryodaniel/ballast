@@ -16,6 +16,12 @@ rules:
   verbs:
   - "*"
 - apiGroups:
+  - ballast.bonny.run
+  resources:
+  - evictionpolicies
+  verbs:
+  - "*"  
+- apiGroups:
   - ''
   resources:
   - nodes

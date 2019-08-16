@@ -3,21 +3,23 @@ defmodule Ballast.Evictor do
   Finds pods that are candidates for eviction.
   """
 
-  @label "ballast.bonny.run/evictableAfter"
   @pod_batch_size 500
-  @cluster_name :default
+  @default_max_lifetime 600
 
-  alias K8s.Client
+  alias K8s.{Client, Operation, Selector}
   alias Ballast.Sys.Instrumentation, as: Inst
 
   @doc """
   Gets all pods with eviction enabled.
-  TODO: if continue, gather all pods first and return
   """
-  @spec candidates() :: {:ok, map} | {:error, HTTPoison.Response.t()}
-  def candidates() do
-    operation = Client.list("v1", "pod", namespace: :all)
-    {duration, response} = :timer.tc(Client, :run, [operation, @cluster_name, params: pod_query()])
+  @spec candidates(map()) :: {:ok, list(map)} | {:error, HTTPoison.Response.t()}
+  def candidates(%{} = policy) do
+    op = Client.list("v1", :pods, namespace: :all)
+    selector = Selector.parse(policy)
+    op_w_selector = %Operation{op | label_selector: selector}
+    params = %{limit: @pod_batch_size}
+
+    {duration, response} = :timer.tc(Client, :run, [op_w_selector, :default, params: params])
     measurements = %{duration: duration}
 
     case response do
@@ -37,47 +39,77 @@ defmodule Ballast.Evictor do
   @doc """
   Get a list of evictable pods on the given node pool.
 
-  Filters `candidates/0` by `pod_started_before/1` and `pod_spec_node_name_matches/2`
+  Filters `candidates/1` by `pod_started_before/1` and optionally `on_unpreferred_node/N`
   """
-  @spec evictable(keyword(match: binary())) :: {:ok, list(map)} | {:error, HTTPoison.Response.t()}
-  def evictable(match: pattern) do
-    with {:ok, candidates} <- candidates(),
-         pods_started_before <- Enum.filter(candidates, &pod_started_before/1),
-         pods_matching_pattern <- Enum.filter(pods_started_before, &pod_spec_node_name_matches(&1, pattern)) do
-      {:ok, pods_matching_pattern}
+  @spec evictable(map) :: {:ok, list(map)} | {:error, HTTPoison.Response.t()}
+  def evictable(%{} = policy) do
+    with {:ok, nodes} <- get_nodes(),
+         {:ok, candidates} <- candidates(policy) do
+      max_lifetime = max_lifetime(policy)
+      started_before = pods_started_before(candidates, max_lifetime)
+
+      ready_for_eviction =
+        case mode(policy) do
+          :all -> started_before
+          :unpreferred -> pods_on_unpreferred_node(started_before, nodes)
+        end
+
+      {:ok, ready_for_eviction}
     end
   end
 
-  @doc """
-  Determines if a pod's assigned node matches a substring
+  @spec pods_on_unpreferred_node(list(map), list(map)) :: list(map)
+  defp pods_on_unpreferred_node(pods, nodes) do
+    Enum.filter(pods, fn pod -> pod_on_unpreferred_node(pod, nodes) end)
+  end
 
-  ## Examples
-      iex> Ballast.Evictor.pod_spec_node_name_matches(%{"spec" => %{"nodeName" => "cloud-cool-pool-65678"}}, "cool-pool")
-      true
+  @spec pod_on_unpreferred_node(map, list(map)) :: boolean
+  def pod_on_unpreferred_node(
+        %{
+          "spec" => %{
+            "nodeName" => node_name,
+            "affinity" => %{"nodeAffinity" => %{"preferredDuringSchedulingIgnoredDuringExecution" => affinity}}
+          }
+        },
+        nodes
+      ) do
+    prefs = Enum.map(affinity, fn a -> Map.get(a, "preference") end)
 
-      iex> Ballast.Evictor.pod_spec_node_name_matches(%{"spec" => %{"nodeName" => "cloud-cool-pool-65678"}}, "uncool-pool")
-      false
-  """
-  @spec pod_spec_node_name_matches(map(), binary()) :: boolean()
-  def pod_spec_node_name_matches(%{"spec" => %{"nodeName" => name}}, substring), do: String.contains?(name, substring)
-  def pod_spec_node_name_matches(_, _), do: false
+    preferred =
+      nodes
+      |> find_node_by_name(node_name)
+      |> Ballast.Kube.Node.matches_preferences?(prefs)
+
+    !preferred
+  end
+
+  def pod_on_unpreferred_node(_pod_with_no_affinity, _nodes), do: false
+
+  @spec find_node_by_name(list(map), binary()) :: map() | nil
+  defp find_node_by_name(nodes, node_name) do
+    Enum.find(nodes, fn %{"metadata" => %{"name" => name}} -> name == node_name end)
+  end
+
+  @doc false
+  @spec pods_started_before(list(map), pos_integer) :: list(map())
+  def pods_started_before(pods, max_lifetime) do
+    Enum.filter(pods, fn pod -> pod_started_before(pod, max_lifetime) end)
+  end
 
   @doc """
   Check if a pod started before a given time
 
   ## Examples
       iex> start_time = DateTime.utc_now |> DateTime.add(-61, :second) |> DateTime.to_string
-      ...> metadata = %{"labels" => %{"#{@label}" => "60"}}
-      ...> Ballast.Evictor.pod_started_before(%{"metadata" => metadata, "status" => %{"startTime" => start_time}})
+      ...> Ballast.Evictor.pod_started_before(%{"status" => %{"startTime" => start_time}}, 60)
       true
 
       iex> start_time = DateTime.utc_now |> DateTime.to_string
-      ...> metadata = %{"labels" => %{"#{@label}" => "60"}}
-      ...> Ballast.Evictor.pod_started_before(%{"metadata" => metadata, "status" => %{"startTime" => start_time}})
+      ...> Ballast.Evictor.pod_started_before(%{"status" => %{"startTime" => start_time}}, 60)
       false
   """
-  @spec pod_started_before(map) :: boolean
-  def pod_started_before(%{"metadata" => %{"labels" => %{@label => seconds}}, "status" => %{"startTime" => start_time}}) do
+  @spec pod_started_before(map, pos_integer) :: boolean
+  def pod_started_before(%{"status" => %{"startTime" => start_time}}, seconds) do
     seconds_ago = -parse_seconds(seconds)
     cutoff_time = DateTime.utc_now() |> DateTime.add(seconds_ago, :second)
 
@@ -89,7 +121,15 @@ defmodule Ballast.Evictor do
     end
   end
 
-  def pod_started_before(_), do: false
+  def pod_started_before(_, _), do: false
+
+  @spec max_lifetime(map()) :: pos_integer()
+  defp max_lifetime(%{"spec" => %{"maxLifetime" => sec}}), do: parse_seconds(sec)
+  defp max_lifetime(_), do: @default_max_lifetime
+
+  @spec mode(map()) :: :all | :unpreferred
+  defp mode(%{"spec" => %{"mode" => "unpreferred"}}), do: :unpreferred
+  defp mode(_), do: :all
 
   @spec parse_seconds(binary() | pos_integer() | {pos_integer(), term()}) :: pos_integer()
   defp parse_seconds(sec) when is_binary(sec), do: sec |> Integer.parse() |> parse_seconds
@@ -97,6 +137,12 @@ defmodule Ballast.Evictor do
   defp parse_seconds({sec, _}), do: sec
   defp parse_seconds(_), do: 0
 
-  @spec pod_query() :: keyword
-  defp pod_query(), do: [{:labelSelector, @label}, {:limit, @pod_batch_size}]
+  defp get_nodes() do
+    op = K8s.Client.list("v1", :nodes)
+
+    with {:ok, stream} <- K8s.Client.stream(op, :default) do
+      nodes = Enum.into(stream, [])
+      {:ok, nodes}
+    end
+  end
 end
