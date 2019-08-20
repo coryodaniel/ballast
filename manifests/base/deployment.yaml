@@ -8,7 +8,7 @@ spec:
     rollingUpdate:
       maxSurge: 0%
       maxUnavailable: 100%
-    type: RollingUpdate  
+    type: RollingUpdate
   template:
     spec:
       volumes:
@@ -71,7 +71,6 @@ spec:
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 65534
+          runAsNonRoot: true
+          runAsUser: 65534
       serviceAccountName: ballast
