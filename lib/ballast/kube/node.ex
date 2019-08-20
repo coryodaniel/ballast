@@ -61,114 +61,27 @@ defmodule Ballast.Kube.Node do
 
   def ready?(_), do: false
 
-  # Currently only supports mNatchExpressions (not matchFields)
-  # Also ignores weight of preferences
-  @doc false
-  @spec matches_preferences?(map, list(map)) :: boolean
-  def matches_preferences?(node, prefs) do
-    Enum.any?(prefs, fn pref ->
-      exprs = Map.get(pref, "matchExpressions", %{})
-      match_expressions?(node, exprs)
-    end)
-  end
-
   @doc """
-  Checks if a node matches all `matchExpressions` logical `AND`
+  Check if a kubernetes node matches `"preferences'` of a `nodeAffinity`
+
+  Note: Currently only supports matchExpressions (not matchFields). Weights are also ignored.
 
   ## Examples
-    Matching all expressions:
-    
+
       iex> node = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "prod", "tier" => "frontend"}}}
       ...> expr1 = %{"operator" => "In", "key" => "env", "values" => ["prod", "qa"]}
       ...> expr2 = %{"operator" => "Exists", "key" => "tier"}
-      ...> Ballast.Kube.Node.match_expressions?(node, [expr1, expr2])
-      true
-      
-    Matching some expressions:
-    
-      iex> node = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "prod", "tier" => "frontend"}}}
-      ...> expr1 = %{"operator" => "In", "key" => "env", "values" => ["prod", "qa"]}
-      ...> expr2 = %{"operator" => "Exists", "key" => "foo"}
-      ...> Ballast.Kube.Node.match_expressions?(node, [expr1, expr2])
-      false      
+      ...> pref = %{"matchExpressions" => [expr1, expr2]}
+      ...> Ballast.Kube.Node.matches_preferences?(node, [pref])
+      true  
   """
-  @spec match_expressions?(map, list(map)) :: boolean
-  def match_expressions?(node, exprs) do
-    Enum.all?(exprs, fn expr -> match_expression?(node, expr) end)
+  @spec matches_preferences?(map, list(map)) :: boolean
+  def matches_preferences?(node, prefs) do
+    Enum.any?(prefs, fn pref ->
+      exprs = Map.get(pref, "matchExpressions", [])
+      K8s.Selector.match_expressions?(node, exprs)
+    end)
   end
-
-  @doc """
-  Checks whether a node matches a selector `matchExpression`
-
-  ## Examples
-    When an `In` expression matches
-      iex> node = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "prod"}}}
-      ...> expr = %{"operator" => "In", "key" => "env", "values" => ["prod", "qa"]}
-      ...> Ballast.Kube.Node.match_expression?(node, expr)
-      true
-    
-    When an `In` expression doesnt match
-      iex> node = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
-      ...> expr = %{"operator" => "In", "key" => "env", "values" => ["prod", "qa"]}
-      ...> Ballast.Kube.Node.match_expression?(node, expr)
-      false
-      
-    When an `NotIn` expression matches
-      iex> node = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
-      ...> expr = %{"operator" => "NotIn", "key" => "env", "values" => ["prod"]}
-      ...> Ballast.Kube.Node.match_expression?(node, expr)
-      true
-    
-    When an `NotIn` expression doesnt match
-      iex> node = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
-      ...> expr = %{"operator" => "NotIn", "key" => "env", "values" => ["dev"]}
-      ...> Ballast.Kube.Node.match_expression?(node, expr)
-      false
-      
-    When an `Exists` expression matches
-      iex> node = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
-      ...> expr = %{"operator" => "Exists", "key" => "env"}
-      ...> Ballast.Kube.Node.match_expression?(node, expr)
-      true
-      
-    When an `Exists` expression doesnt match
-      iex> node = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
-      ...> expr = %{"operator" => "Exists", "key" => "tier"}
-      ...> Ballast.Kube.Node.match_expression?(node, expr)
-      false
-      
-    When an `DoesNotExist` expression matches
-      iex> node = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
-      ...> expr = %{"operator" => "DoesNotExist", "key" => "tier"}
-      ...> Ballast.Kube.Node.match_expression?(node, expr)
-      true
-      
-    When an `DoesNotExist` expression doesnt match
-      iex> node = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
-      ...> expr = %{"operator" => "DoesNotExist", "key" => "env"}
-      ...> Ballast.Kube.Node.match_expression?(node, expr)
-      false      
-  """
-  @spec match_expression?(map(), map()) :: boolean()
-  def match_expression?(node, %{"operator" => "In", "key" => k, "values" => v}) do
-    label = Resource.label(node, k)
-    Enum.member?(v, label)
-  end
-
-  def match_expression?(node, %{"operator" => "NotIn", "key" => k, "values" => v}) do
-    label = Resource.label(node, k)
-    !Enum.member?(v, label)
-  end
-
-  def match_expression?(node, %{"operator" => "Exists", "key" => k}) do
-    Resource.has_label?(node, k)
-  end
-
-  def match_expression?(node, %{"operator" => "DoesNotExist", "key" => k}) do
-    !Resource.has_label?(node, k)
-  end
-
-  def match_expression?(_, _), do: false
 
   @doc """
   Percent CPU available

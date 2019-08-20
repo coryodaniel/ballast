@@ -42,7 +42,7 @@ defmodule Ballast.MixProject do
   defp deps do
     [
       {:bonny, "~> 0.3"},
-      {:k8s, "~> 0.3"},
+      {:k8s, "~> 0.3.2"},
       {:jason, "~> 1.1"},
       {:notion, "~> 0.2"},
 

@@ -12,7 +12,8 @@ defmodule Ballast.Application do
     Ballast.Sys.Logger.attach(enable_debugging)
 
     children = [
-      {Ballast.PoolPolicy.CooldownCache, []}
+      {Ballast.PoolPolicy.CooldownCache, []},
+      {Ballast.PeriodicTask, %{}}
     ]
 
     opts = [strategy: :one_for_one, name: Ballast.Supervisor]
