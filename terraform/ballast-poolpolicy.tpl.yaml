@@ -8,7 +8,6 @@ spec:
   clusterName: ${cluster}
   poolName: ${source_pool}
   cooldownSeconds: 30
-  enableAutoEviction: true
   managedPools:
   - poolName: ${managed_pool_1}
     minimumInstances: 1
