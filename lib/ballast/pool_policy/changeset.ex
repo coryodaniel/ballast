@@ -37,8 +37,8 @@ defmodule Ballast.PoolPolicy.Changeset do
 
   @doc """
   Rules:
-  * If source pool is zero, assume scale to 0 and :scale_down 
-    * NOTE: this is possible *not* true for Preemptible source pools 
+  * If source pool is zero, assume scale to 0 and :scale_down
+    * NOTE: this is possibly *not* true for Preemptible source pools
   * If the source pool has more nodes
     * calculate and scale UP that managed pool's minimum count. `:scale_up`
   * Else; source is lower because its scaling down, or preempted/stockedout.
@@ -49,13 +49,13 @@ defmodule Ballast.PoolPolicy.Changeset do
       * Note: There is a case when the source pools count is 0, the managed pool will be scaled down. This isn't optimal, but we dont know _why_ the source pool is zero. To mitigate scaling managed pools to zero, set the `minimumInstances`.
 
 
-  ## Examples     
+  ## Examples
     When the source pool instance count is zero
       iex> managed_pool = %Ballast.NodePool{instance_count: 5}
       ...> source_pool = %Ballast.NodePool{instance_count: 0}
       ...> Ballast.PoolPolicy.Changeset.strategy(managed_pool, source_pool)
       :scale_down
-      
+
     When the source pool instance count is greater
       iex> managed_pool = %Ballast.NodePool{instance_count: 5}
       ...> source_pool = %Ballast.NodePool{instance_count: 10, under_pressure: false}

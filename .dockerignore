@@ -1,6 +1,11 @@
 _build
 .elixir_ls
 cover
+config/dev.exs
+config/test.exs
+examples
+manifests
+terraform
 deps
 doc
 test
@@ -9,3 +14,5 @@ coveralls.json
 Makefile
 local.Makefile
 erl_crash.dump
+*.md
+*.yaml

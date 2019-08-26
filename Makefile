@@ -20,7 +20,7 @@ guard-%: # Creates an environment variable requirement by setting a prereq of gu
 	fi
 
 lazy:
-lazy: ## Find places where Ive been lazy
+lazy: ## Find places where I've been lazy
 	grep -R --include="*.ex" -E ":ok[^=].* = " ./lib | grep -v '\->'
 
 all: ## Lints, tests, compiles, and pushes "latest" docker tag.
@@ -54,6 +54,15 @@ build: guard-IMAGE compile
 push: ## Release 'latest' docker image
 push: guard-IMAGE
 	docker push ${IMAGE}:latest
+
+.PHONY: debug
+debug: guard-IMAGE compile build
+debug: ## Builds a debug image
+	docker tag ${IMAGE} ${IMAGE}:debug
+	docker push ${IMAGE}:debug
+
+shell: guard-IMAGE
+	docker run -it --entrypoint "/bin/sh" quay.io/coryodaniel/ballast:latest
 
 tag: guard-DOCKER_LABEL
 tag: ## Tag a release
@@ -147,4 +156,3 @@ _roll_pool.%:
 		awk '{print $$1, $$2}' |\
 		xargs -n 2 bash -c 'gcloud compute instance-groups managed rolling-action replace $$0 --zone $$1 --max-unavailable 100 --max-surge 1'
 
-		
