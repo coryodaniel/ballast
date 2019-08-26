@@ -9,11 +9,11 @@ spec:
   poolName: ${source_pool}
   cooldownSeconds: 30
   managedPools:
-  - poolName: ${managed_pool_1}
-    minimumInstances: 1
-    minimumPercent: 25
-    location: ${location}
-  - poolName: ${managed_pool_2}
-    minimumInstances: 1
-    minimumPercent: 25
-    location: ${location}
+    - poolName: ${managed_pool_1}
+      minimumInstances: 1
+      minimumPercent: 25
+      location: ${location}
+    - poolName: ${managed_pool_2}
+      minimumInstances: 1
+      minimumPercent: 25
+      location: ${location}

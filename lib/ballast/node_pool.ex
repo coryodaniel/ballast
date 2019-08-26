@@ -122,8 +122,8 @@ defmodule Ballast.NodePool do
   end
 
   def scale(%Changeset{} = changeset, conn) do
-    pool = changeset.pool
-    {duration, response} = :timer.tc(adapter_for(pool), :scale, [changeset, conn])
+    adapter = adapter_for(changeset.pool)
+    {duration, response} = :timer.tc(adapter, :scale, [changeset, conn])
     {measurements, metadata} = measurements_and_metadata(changeset)
 
     measurements = Map.put(measurements, :duration, duration)

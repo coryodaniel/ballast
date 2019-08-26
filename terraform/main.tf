@@ -12,11 +12,11 @@ resource "google_project_service" "container" {
   service = "container.googleapis.com"
 
   disable_dependent_services = false
-  disable_on_destroy = false
+  disable_on_destroy         = false
 }
 
 resource "google_container_cluster" "main" {
-  depends_on = ["google_project_service.container"]
+  depends_on               = ["google_project_service.container"]
   name                     = "${var.gke_cluster_name}"
   location                 = "${var.gcp_location}"
   min_master_version       = "latest"
@@ -41,7 +41,7 @@ resource "google_container_node_pool" "od-n1-1" {
 
   autoscaling {
     min_node_count = 1
-    max_node_count = 5
+    max_node_count = var.gcp_on_demand_max_nodes
   }
 
   management {
@@ -59,6 +59,7 @@ resource "google_container_node_pool" "od-n1-1" {
 
     labels = {
       node-group = "${local.node_group}"
+      node-type  = "on-demand"
     }
   }
 }
@@ -71,7 +72,7 @@ resource "google_container_node_pool" "pvm-n1-1" {
 
   autoscaling {
     min_node_count = 1
-    max_node_count = 5
+    max_node_count = var.gcp_preemptible_max_nodes
   }
 
   management {
@@ -102,7 +103,7 @@ resource "google_container_node_pool" "pvm-n1-2" {
 
   autoscaling {
     min_node_count = 1
-    max_node_count = 5
+    max_node_count = var.gcp_preemptible_max_nodes
   }
 
   management {
