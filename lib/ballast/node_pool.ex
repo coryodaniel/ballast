@@ -150,28 +150,27 @@ defmodule Ballast.NodePool do
   Determine if a pool is under pressure.
 
   A pool is considered under pressure when more than #{@node_pool_pressure_percent} percent of its nodes are under pressure.
+
+  Notes:
+  * Assumes there is pressure if there is an error from the k8s API.
+  * Considers no nodes returned as under pressure.
   """
   @spec under_pressure?(Ballast.NodePool.t()) :: boolean()
   def under_pressure?(%Ballast.NodePool{} = pool) do
-    {:ok, stream} = nodes(pool)
-    nodes = Enum.into(stream, [])
-
-    nodes_under_pressure = Enum.filter(nodes, fn node -> node_under_pressure?(node) end)
-
-    percent_under_pressure = length(nodes_under_pressure) / length(nodes)
-    percent_under_pressure >= @node_pool_pressure_threshold
-  end
-
-  @doc """
-  Get the nodes from the kubernetes API matching the provider's label selector.
-  """
-  @spec nodes(Ballast.NodePool.t()) :: {:ok, Enumerable.t()} | {:error, atom()}
-  def nodes(%Ballast.NodePool{} = pool) do
     label_selector = adapter_for(pool).label_selector(pool)
-    op = K8s.Client.list("v1", :nodes)
-    K8s.Client.stream(op, :default, params: %{labelSelector: label_selector})
+    params = %{labelSelector: label_selector}
+
+    with {:ok, [_h | _t] = nodes} <- Ballast.Kube.Node.list(params) do
+      nodes_under_pressure = Enum.filter(nodes, fn node -> node_under_pressure?(node) end)
+
+      percent_under_pressure = length(nodes_under_pressure) / length(nodes)
+      percent_under_pressure >= @node_pool_pressure_threshold
+    else
+      _error -> true
+    end
   end
 
+  @spec node_under_pressure?(map) :: boolean()
   defp node_under_pressure?(node) do
     !Ballast.Kube.Node.ready?(node) || Ballast.Kube.Node.resources_constrained?(node)
   end
@@ -180,6 +179,7 @@ defmodule Ballast.NodePool do
   @spec measurements_and_metadata(Changeset.t()) :: {map, map}
   defp measurements_and_metadata(changeset) do
     measurements = %{
+      source_pool_current_count: changeset.source_count,
       managed_pool_current_count: changeset.pool.instance_count,
       managed_pool_current_minimum_count: changeset.pool.minimum_count,
       managed_pool_new_minimum_count: changeset.minimum_count

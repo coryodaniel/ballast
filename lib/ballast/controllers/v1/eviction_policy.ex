@@ -47,16 +47,13 @@ defmodule Ballast.Controller.V1.EvictionPolicy do
   @impl Bonny.Controller
   def reconcile(payload) do
     handle_eviction(payload)
-    :ok
   end
 
-  @spec handle_eviction(map()) :: :ok
+  @spec handle_eviction(map()) :: :ok | :error
   defp handle_eviction(%{} = policy) do
     with {:ok, pods} <- Ballast.Evictor.evictable(policy) do
       Enum.each(pods, &Ballast.Kube.Eviction.create/1)
     end
-
-    :ok
   end
 
   defp handle_eviction(_) do

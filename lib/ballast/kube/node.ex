@@ -13,7 +13,28 @@ defmodule Ballast.Kube.Node do
     "DiskPressure"
   ]
 
-  alias K8s.Resource
+  alias K8s.{Client, Resource}
+  alias Ballast.Sys.Instrumentation, as: Inst
+
+  @doc """
+  List kubernetes nodes.
+  """
+  @spec list(map()) :: {:ok, list(map)} | :error
+  def list(params \\ %{}) do
+    op = Client.list("v1", :nodes)
+
+    with {:ok, stream} <- Client.stream(op, :default, params: params) do
+      {duration, nodes} = :timer.tc(Enum, :into, [stream, []])
+      measurements = %{duration: duration, count: length(nodes)}
+      Inst.nodes_list_succeeded(measurements, %{})
+
+      {:ok, nodes}
+    else
+      _error ->
+        Inst.nodes_list_failed(%{}, %{})
+        :error
+    end
+  end
 
   @doc """
   Checks if `status.conditions` are present and node is `Ready`
@@ -77,20 +98,20 @@ defmodule Ballast.Kube.Node do
 
   ## Examples
     Matching all expressions:
-    
+
       iex> node = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "prod", "tier" => "frontend"}}}
       ...> expr1 = %{"operator" => "In", "key" => "env", "values" => ["prod", "qa"]}
       ...> expr2 = %{"operator" => "Exists", "key" => "tier"}
       ...> Ballast.Kube.Node.match_expressions?(node, [expr1, expr2])
       true
-      
+
     Matching some expressions:
-    
+
       iex> node = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "prod", "tier" => "frontend"}}}
       ...> expr1 = %{"operator" => "In", "key" => "env", "values" => ["prod", "qa"]}
       ...> expr2 = %{"operator" => "Exists", "key" => "foo"}
       ...> Ballast.Kube.Node.match_expressions?(node, [expr1, expr2])
-      false      
+      false
   """
   @spec match_expressions?(map, list(map)) :: boolean
   def match_expressions?(node, exprs) do
@@ -106,48 +127,48 @@ defmodule Ballast.Kube.Node do
       ...> expr = %{"operator" => "In", "key" => "env", "values" => ["prod", "qa"]}
       ...> Ballast.Kube.Node.match_expression?(node, expr)
       true
-    
+
     When an `In` expression doesnt match
       iex> node = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
       ...> expr = %{"operator" => "In", "key" => "env", "values" => ["prod", "qa"]}
       ...> Ballast.Kube.Node.match_expression?(node, expr)
       false
-      
+
     When an `NotIn` expression matches
       iex> node = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
       ...> expr = %{"operator" => "NotIn", "key" => "env", "values" => ["prod"]}
       ...> Ballast.Kube.Node.match_expression?(node, expr)
       true
-    
+
     When an `NotIn` expression doesnt match
       iex> node = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
       ...> expr = %{"operator" => "NotIn", "key" => "env", "values" => ["dev"]}
       ...> Ballast.Kube.Node.match_expression?(node, expr)
       false
-      
+
     When an `Exists` expression matches
       iex> node = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
       ...> expr = %{"operator" => "Exists", "key" => "env"}
       ...> Ballast.Kube.Node.match_expression?(node, expr)
       true
-      
+
     When an `Exists` expression doesnt match
       iex> node = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
       ...> expr = %{"operator" => "Exists", "key" => "tier"}
       ...> Ballast.Kube.Node.match_expression?(node, expr)
       false
-      
+
     When an `DoesNotExist` expression matches
       iex> node = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
       ...> expr = %{"operator" => "DoesNotExist", "key" => "tier"}
       ...> Ballast.Kube.Node.match_expression?(node, expr)
       true
-      
+
     When an `DoesNotExist` expression doesnt match
       iex> node = %{"kind" => "Node", "metadata" => %{"labels" => %{"env" => "dev"}}}
       ...> expr = %{"operator" => "DoesNotExist", "key" => "env"}
       ...> Ballast.Kube.Node.match_expression?(node, expr)
-      false      
+      false
   """
   @spec match_expression?(map(), map()) :: boolean()
   def match_expression?(node, %{"operator" => "In", "key" => k, "values" => v}) do

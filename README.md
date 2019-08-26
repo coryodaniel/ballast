@@ -168,8 +168,8 @@ kind: EvictionPolicy
 metadata:
   name: unpreferred-nodes-nginx
 spec:
-  mode: unpreferred 
-  maxLifetime: 600 
+  mode: unpreferred
+  maxLifetime: 600
   selector:
     matchLabels:
       app: nginx

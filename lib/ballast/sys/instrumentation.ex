@@ -2,6 +2,12 @@ defmodule Ballast.Sys.Instrumentation do
   @moduledoc false
   use Notion, name: :ballast, metadata: %{}
 
+  @doc "Get nodes succceeded"
+  defevent([:nodes, :list, :succeeded])
+
+  @doc "Get nodes failed"
+  defevent([:nodes, :list, :failed])
+
   @doc "Pod eviction succceeded"
   defevent([:pod, :eviction, :succeeded])
 

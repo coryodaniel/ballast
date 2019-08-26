@@ -3,6 +3,7 @@ defmodule Ballast.Evictor do
   Finds pods that are candidates for eviction.
   """
 
+  @node_batch_size 100
   @pod_batch_size 500
   @default_max_lifetime 600
 
@@ -43,7 +44,7 @@ defmodule Ballast.Evictor do
   """
   @spec evictable(map) :: {:ok, list(map)} | {:error, HTTPoison.Response.t()}
   def evictable(%{} = policy) do
-    with {:ok, nodes} <- get_nodes(),
+    with {:ok, nodes} <- Ballast.Kube.Node.list(%{limit: @node_batch_size}),
          {:ok, candidates} <- candidates(policy) do
       max_lifetime = max_lifetime(policy)
       started_before = pods_started_before(candidates, max_lifetime)
@@ -136,13 +137,4 @@ defmodule Ballast.Evictor do
   defp parse_seconds(sec) when is_integer(sec), do: sec
   defp parse_seconds({sec, _}), do: sec
   defp parse_seconds(_), do: 0
-
-  defp get_nodes() do
-    op = K8s.Client.list("v1", :nodes)
-
-    with {:ok, stream} <- K8s.Client.stream(op, :default) do
-      nodes = Enum.into(stream, [])
-      {:ok, nodes}
-    end
-  end
 end

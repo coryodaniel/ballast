@@ -15,6 +15,8 @@ defmodule Ballast.Sys.Metrics do
       counter("ballast.pool_policy.deleted.count", description: nil),
       counter("ballast.pool_policy.modified.count", description: nil),
       counter("ballast.pool_policy.added.count", description: nil),
+      counter("ballast.nodes.list.succeeded.count", description: nil),
+      counter("ballast.nodes.list.failed.count", description: nil),
       counter("ballast.pod.eviction.failed.count", description: nil),
       counter("ballast.pod.eviction.succeeded.count", description: nil),
       counter("ballast.get_eviction_candidates.failed.count", description: nil),

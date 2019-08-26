@@ -6,11 +6,18 @@ defmodule Ballast.PoolPolicy.Changeset do
   alias Ballast.NodePool
   alias Ballast.PoolPolicy.{Changeset, ManagedPool}
 
-  defstruct [:pool, :minimum_count, :strategy]
+  defstruct [:pool, :minimum_count, :source_count, :strategy]
 
+  @typedoc """
+  * `pool` - the managed pool changeset will be applied to
+  * `minimum_count` - the new minimum count for the autoscaler or cluster
+  * `source_count` - the current count of the source pool
+  * `strategy` - what ballast thinks is happening to the source pool - poor name.
+  """
   @type t :: %__MODULE__{
           pool: NodePool.t(),
-          minimum_count: pos_integer,
+          source_count: integer,
+          minimum_count: integer,
           strategy: :nothing | :scale_up | :scale_down
         }
 
@@ -21,7 +28,7 @@ defmodule Ballast.PoolPolicy.Changeset do
       iex> managed_pool = %Ballast.PoolPolicy.ManagedPool{pool: %Ballast.NodePool{name: "managed-pool"}, minimum_percent: 30, minimum_instances: 1}
       ...> source_pool = %Ballast.NodePool{instance_count: 10}
       ...> Ballast.PoolPolicy.Changeset.new(managed_pool, source_pool)
-      %Ballast.PoolPolicy.Changeset{minimum_count: 3, pool: %Ballast.NodePool{cluster: nil, data: nil, instance_count: nil, location: nil, name: "managed-pool", project: nil, under_pressure: nil}, strategy: :scale_down}
+      %Ballast.PoolPolicy.Changeset{source_count: 10, minimum_count: 3, pool: %Ballast.NodePool{cluster: nil, data: nil, instance_count: nil, location: nil, name: "managed-pool", project: nil, under_pressure: nil}, strategy: :scale_down}
   """
   @spec new(ManagedPool.t(), NodePool.t()) :: t
   def new(managed_pool, %NodePool{instance_count: source_count} = source_pool) do
@@ -30,6 +37,7 @@ defmodule Ballast.PoolPolicy.Changeset do
 
     %Changeset{
       pool: managed_pool.pool,
+      source_count: source_count,
       minimum_count: calculated_minimum_count,
       strategy: strategy(managed_pool.pool, source_pool)
     }
