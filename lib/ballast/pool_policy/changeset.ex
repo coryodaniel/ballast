@@ -33,7 +33,12 @@ defmodule Ballast.PoolPolicy.Changeset do
   @spec new(ManagedPool.t(), NodePool.t()) :: t
   def new(managed_pool, %NodePool{instance_count: source_count} = source_pool) do
     calculated_minimum_count =
-      calc_new_minimum_count(source_count, managed_pool.minimum_percent, managed_pool.minimum_instances)
+      calc_new_minimum_count(
+        source_count,
+        managed_pool.minimum_percent,
+        managed_pool.minimum_instances,
+        managed_pool.pool.maximum_count
+      )
 
     %Changeset{
       pool: managed_pool.pool,
@@ -89,29 +94,37 @@ defmodule Ballast.PoolPolicy.Changeset do
   def strategy(_, _), do: :scale_down
 
   @doc """
-  Calculates the managed pool's new minimum instance count
-
-  Returns the calculated minimum count when the managed pool's count is above the minimum instance count, else returns the minimum instance count.
+  Calculates the managed pool's new minimum instance count.
 
   ## Examples
-    Managed pool's count is less than minimum
-      iex> {current_source_count, minimum_percent, minimum_count} = {10, 10, 2}
-      ...> Ballast.PoolPolicy.Changeset.calc_new_minimum_count(current_source_count, minimum_percent, minimum_count)
+    When the calculated count is less than the minimum count, return minimum
+      iex> {current_source_count, minimum_percent, minimum_count, maximum_count} = {10, 10, 2, 100}
+      ...> Ballast.PoolPolicy.Changeset.calc_new_minimum_count(current_source_count, minimum_percent, minimum_count, maximum_count)
       2
 
-    Managed pool's count is greater than minimum
-      iex> {current_source_count, minimum_percent, minimum_count} = {10, 50, 2}
-      ...> Ballast.PoolPolicy.Changeset.calc_new_minimum_count(current_source_count, minimum_percent, minimum_count)
+    When the calculated count is greater than minimum count, return calculated
+      iex> {current_source_count, minimum_percent, minimum_count, maximum_count} = {10, 50, 2, 100}
+      ...> Ballast.PoolPolicy.Changeset.calc_new_minimum_count(current_source_count, minimum_percent, minimum_count, maximum_count)
       5
+
+    When the calculated count is greater than maximum count, return maximum
+      iex> {current_source_count, minimum_percent, minimum_count, maximum_count} = {200, 100, 2, 33}
+      ...> Ballast.PoolPolicy.Changeset.calc_new_minimum_count(current_source_count, minimum_percent, minimum_count, maximum_count)
+      33
   """
-  @spec calc_new_minimum_count(pos_integer, pos_integer, pos_integer) :: pos_integer
-  def calc_new_minimum_count(source_pool_current_count, minimum_percent, minimum_instances) do
+  @spec calc_new_minimum_count(integer, integer, integer, integer) :: integer
+  def calc_new_minimum_count(source_pool_current_count, minimum_percent, minimum_instances, managed_pool_max_count) do
     new_minimum_count = round(source_pool_current_count * (minimum_percent / 100))
-    do_calc_new_minimum_count(new_minimum_count, minimum_instances)
+    do_calc_new_minimum_count(new_minimum_count, minimum_instances, managed_pool_max_count)
   end
 
-  defp do_calc_new_minimum_count(new_minimum_count, minimum_instances) when new_minimum_count > minimum_instances,
-    do: new_minimum_count
+  defp do_calc_new_minimum_count(new_minimum_count, _, managed_pool_max_count)
+       when is_integer(managed_pool_max_count) and new_minimum_count >= managed_pool_max_count,
+       do: managed_pool_max_count
 
-  defp do_calc_new_minimum_count(_, minimum_instances), do: minimum_instances
+  defp do_calc_new_minimum_count(new_minimum_count, minimum_instances, _managed_pool_max_count)
+       when new_minimum_count > minimum_instances,
+       do: new_minimum_count
+
+  defp do_calc_new_minimum_count(_, minimum_instances, _managed_pool_max_count), do: minimum_instances
 end

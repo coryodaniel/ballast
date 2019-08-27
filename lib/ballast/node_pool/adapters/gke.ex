@@ -11,7 +11,7 @@ defmodule Ballast.NodePool.Adapters.GKE do
   alias GoogleApi.Container.V1.Api.Projects, as: Container
   alias GoogleApi.Compute.V1.Api.InstanceGroups
 
-  # HACK: container_projects_locations_clusters_node_pools_get is in master, but there is a syntax error. 
+  # HACK: container_projects_locations_clusters_node_pools_get is in master, but there is a syntax error.
   # Manually including function here.
   alias GoogleApi.Container.V1.Connection
   alias GoogleApi.Gax.{Request, Response}
@@ -74,15 +74,16 @@ defmodule Ballast.NodePool.Adapters.GKE do
 
     with {:ok, data} <- response,
          pool_with_data <- %NodePool{pool | data: data},
-         minimum_count <- get_minimum_node_count(pool_with_data),
-         instance_count <- get_node_pool_size(pool_with_data, conn) do
-      {:ok, %NodePool{pool_with_data | instance_count: instance_count, minimum_count: minimum_count}}
+         pool_with_min_max <- set_min_max_counts(pool_with_data),
+         pool_with_all_counts <- set_instance_count(pool_with_min_max, conn) do
+      {:ok, pool_with_all_counts}
     end
   end
 
-  @spec get_node_pool_size(Ballast.NodePool.t(), Tesla.Client.t()) :: integer
-  defp get_node_pool_size(%NodePool{data: %{instanceGroupUrls: urls}}, conn) do
-    Enum.reduce(urls, 0, fn url, agg -> agg + get_instance_group_size(url, conn) end)
+  @spec set_instance_count(Ballast.NodePool.t(), Tesla.Client.t()) :: Ballast.NodePool.t()
+  defp set_instance_count(%NodePool{data: %{instanceGroupUrls: urls}} = pool, conn) do
+    instance_count = Enum.reduce(urls, 0, fn url, agg -> agg + get_instance_group_size(url, conn) end)
+    %NodePool{pool | instance_count: instance_count}
   end
 
   @spec get_instance_group_size(String.t(), Tesla.Client.t()) :: integer
@@ -98,12 +99,14 @@ defmodule Ballast.NodePool.Adapters.GKE do
     end
   end
 
-  @spec get_minimum_node_count(Ballast.NodePool.t()) :: integer | nil
-  defp get_minimum_node_count(%NodePool{data: %{autoscaling: %{minNodeCount: minimum_count, enabled: true}}}) do
-    minimum_count
+  @spec set_min_max_counts(Ballast.NodePool.t()) :: Ballast.NodePool.t()
+  defp set_min_max_counts(
+         %NodePool{data: %{autoscaling: %{maxNodeCount: max, minNodeCount: min, enabled: true}}} = pool
+       ) do
+    %NodePool{pool | minimum_count: min, maximum_count: max}
   end
 
-  defp get_minimum_node_count(_pool), do: nil
+  defp set_min_max_counts(pool), do: pool
 
   @spec set_autoscaling(Ballast.NodePool.t(), pos_integer, Tesla.Client.t()) :: :ok | {:error, Tesla.Env.t()}
   defp set_autoscaling(pool, minimum_count, conn) do

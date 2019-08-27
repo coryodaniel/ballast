@@ -11,7 +11,17 @@ defmodule Ballast.NodePool do
   alias Ballast.PoolPolicy.Changeset
   alias Ballast.Sys.Instrumentation, as: Inst
 
-  defstruct [:cluster, :instance_count, :minimum_count, :project, :location, :name, :data, :under_pressure]
+  defstruct [
+    :cluster,
+    :instance_count,
+    :minimum_count,
+    :maximum_count,
+    :project,
+    :location,
+    :name,
+    :data,
+    :under_pressure
+  ]
 
   @typedoc "Node pool metadata"
   @type t :: %__MODULE__{
@@ -20,6 +30,7 @@ defmodule Ballast.NodePool do
           location: String.t(),
           instance_count: integer | nil,
           minimum_count: integer | nil,
+          maximum_count: integer | nil,
           name: String.t(),
           data: map | nil,
           under_pressure: boolean | nil

@@ -1,5 +1,4 @@
 provider "google" {
-  version     = "~> 2.9"
   project     = "${var.gcp_project}"
   credentials = "${file(var.gcp_credentials_path)}"
 }
@@ -19,7 +18,7 @@ resource "google_container_cluster" "main" {
   depends_on               = ["google_project_service.container"]
   name                     = "${var.gke_cluster_name}"
   location                 = "${var.gcp_location}"
-  min_master_version       = "latest"
+  min_master_version       = "1.13"
   remove_default_node_pool = true
   initial_node_count       = 1
 
