@@ -171,21 +171,21 @@ defmodule Ballast.Kube.Node do
       false
   """
   @spec match_expression?(map(), map()) :: boolean()
-  def match_expression?(node, %{"operator" => "In", "key" => k, "values" => v}) do
+  def match_expression?(%{} = node, %{"operator" => "In", "key" => k, "values" => v}) do
     label = Resource.label(node, k)
     Enum.member?(v, label)
   end
 
-  def match_expression?(node, %{"operator" => "NotIn", "key" => k, "values" => v}) do
+  def match_expression?(%{} = node, %{"operator" => "NotIn", "key" => k, "values" => v}) do
     label = Resource.label(node, k)
     !Enum.member?(v, label)
   end
 
-  def match_expression?(node, %{"operator" => "Exists", "key" => k}) do
+  def match_expression?(%{} = node, %{"operator" => "Exists", "key" => k}) do
     Resource.has_label?(node, k)
   end
 
-  def match_expression?(node, %{"operator" => "DoesNotExist", "key" => k}) do
+  def match_expression?(%{} = node, %{"operator" => "DoesNotExist", "key" => k}) do
     !Resource.has_label?(node, k)
   end
 

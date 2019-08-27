@@ -3,7 +3,6 @@ defmodule Ballast.Evictor do
   Finds pods that are candidates for eviction.
   """
 
-  @pod_batch_size 500
   @default_max_lifetime 600
 
   alias K8s.{Client, Operation, Selector}
@@ -12,29 +11,21 @@ defmodule Ballast.Evictor do
   @doc """
   Gets all pods with eviction enabled.
   """
-  @spec candidates(map()) :: {:ok, list(map)} | {:error, HTTPoison.Response.t()}
+  @spec candidates(map()) :: {:ok, Enumerable.t()} | {:error, HTTPoison.Response.t()}
   def candidates(%{} = policy) do
     op = Client.list("v1", :pods, namespace: :all)
     selector = Selector.parse(policy)
     op_w_selector = %Operation{op | label_selector: selector}
-    params = %{limit: @pod_batch_size}
 
-    require Logger
-    Logger.info("About to stream pods...")
-
-    {duration, response} = :timer.tc(Client, :run, [op_w_selector, :default, params: params])
-    measurements = %{duration: duration}
+    response = Client.stream(op_w_selector, :default)
 
     case response do
-      {:ok, response} ->
-        candidates = Map.get(response, "items")
-        candidate_count = length(candidates)
-        measurements = Map.put(measurements, :count, candidate_count)
-        Inst.get_eviction_candidates_succeeded(measurements)
-        {:ok, candidates}
+      {:ok, stream} ->
+        Inst.get_eviction_candidates_succeeded(%{}, %{})
+        {:ok, stream}
 
       {:error, %HTTPoison.Response{status_code: status}} = error ->
-        Inst.get_eviction_candidates_failed(measurements, %{status: status})
+        Inst.get_eviction_candidates_failed(%{}, %{})
         error
     end
   end
@@ -44,12 +35,12 @@ defmodule Ballast.Evictor do
 
   Filters `candidates/1` by `pod_started_before/1` and optionally `on_unpreferred_node/N`
   """
-  @spec evictable(map) :: {:ok, list(map)} | {:error, HTTPoison.Response.t()}
+  @spec evictable(map) :: {:ok, Enumerable.t()} | {:error, HTTPoison.Response.t()}
   def evictable(%{} = policy) do
     with {:ok, nodes} <- Ballast.Kube.Node.list(),
-         {:ok, candidates} <- candidates(policy) do
+         {:ok, stream} <- candidates(policy) do
       max_lifetime = max_lifetime(policy)
-      started_before = pods_started_before(candidates, max_lifetime)
+      started_before = pods_started_before(stream, max_lifetime)
 
       ready_for_eviction =
         case mode(policy) do
@@ -61,9 +52,15 @@ defmodule Ballast.Evictor do
     end
   end
 
-  @spec pods_on_unpreferred_node(list(map), list(map)) :: list(map)
+  @spec pods_on_unpreferred_node(Enumerable.t(), list(map)) :: Enumerable.t()
   defp pods_on_unpreferred_node(pods, nodes) do
-    Enum.filter(pods, fn pod -> pod_on_unpreferred_node(pod, nodes) end)
+    Stream.filter(pods, fn pod -> pod_on_unpreferred_node(pod, nodes) end)
+  end
+
+  @doc false
+  @spec pods_started_before(Enumerable.t(), pos_integer) :: Enumerable.t()
+  def pods_started_before(pods, max_lifetime) do
+    Stream.filter(pods, fn pod -> pod_started_before(pod, max_lifetime) end)
   end
 
   @spec pod_on_unpreferred_node(map, list(map)) :: boolean
@@ -91,12 +88,6 @@ defmodule Ballast.Evictor do
   @spec find_node_by_name(list(map), binary()) :: map() | nil
   defp find_node_by_name(nodes, node_name) do
     Enum.find(nodes, fn %{"metadata" => %{"name" => name}} -> name == node_name end)
-  end
-
-  @doc false
-  @spec pods_started_before(list(map), pos_integer) :: list(map())
-  def pods_started_before(pods, max_lifetime) do
-    Enum.filter(pods, fn pod -> pod_started_before(pod, max_lifetime) end)
   end
 
   @doc """
