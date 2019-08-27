@@ -192,8 +192,9 @@ defmodule Ballast.NodePool do
     measurements = %{
       source_pool_current_count: changeset.source_count,
       managed_pool_current_count: changeset.pool.instance_count,
+      managed_pool_new_minimum_count: changeset.minimum_count,
       managed_pool_current_minimum_count: changeset.pool.minimum_count,
-      managed_pool_new_minimum_count: changeset.minimum_count
+      managed_pool_current_maximum_count: changeset.pool.maximum_count
     }
 
     metadata = %{pool: changeset.pool.name, strategy: changeset.strategy}

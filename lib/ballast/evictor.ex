@@ -3,7 +3,6 @@ defmodule Ballast.Evictor do
   Finds pods that are candidates for eviction.
   """
 
-  @node_batch_size 100
   @pod_batch_size 500
   @default_max_lifetime 600
 
@@ -19,6 +18,9 @@ defmodule Ballast.Evictor do
     selector = Selector.parse(policy)
     op_w_selector = %Operation{op | label_selector: selector}
     params = %{limit: @pod_batch_size}
+
+    require Logger
+    Logger.info("About to stream pods...")
 
     {duration, response} = :timer.tc(Client, :run, [op_w_selector, :default, params: params])
     measurements = %{duration: duration}
@@ -44,7 +46,7 @@ defmodule Ballast.Evictor do
   """
   @spec evictable(map) :: {:ok, list(map)} | {:error, HTTPoison.Response.t()}
   def evictable(%{} = policy) do
-    with {:ok, nodes} <- Ballast.Kube.Node.list(%{limit: @node_batch_size}),
+    with {:ok, nodes} <- Ballast.Kube.Node.list(),
          {:ok, candidates} <- candidates(policy) do
       max_lifetime = max_lifetime(policy)
       started_before = pods_started_before(candidates, max_lifetime)
