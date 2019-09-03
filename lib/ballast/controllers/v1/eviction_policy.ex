@@ -53,6 +53,7 @@ defmodule Ballast.Controller.V1.EvictionPolicy do
   defp handle_eviction(%{} = policy) do
     with {:ok, pods} <- Ballast.Evictor.evictable(policy) do
       Enum.each(pods, &Ballast.Kube.Eviction.create/1)
+      :ok
     end
   end
 

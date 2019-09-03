@@ -24,7 +24,7 @@ defmodule Ballast.Evictor do
         Inst.get_eviction_candidates_succeeded(%{}, %{})
         {:ok, stream}
 
-      {:error, %HTTPoison.Response{status_code: status}} = error ->
+      {:error, _any} = error ->
         Inst.get_eviction_candidates_failed(%{}, %{})
         error
     end
