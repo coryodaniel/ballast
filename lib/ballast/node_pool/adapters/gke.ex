@@ -60,9 +60,9 @@ defmodule Ballast.NodePool.Adapters.GKE do
   @impl true
   @spec scale(Ballast.PoolPolicy.Changeset.t(), Tesla.Client.t()) :: {:ok, map} | {:error, Tesla.Env.t()}
   def scale(%Ballast.PoolPolicy.Changeset{} = changeset, conn) do
-    case autoscaling_enabled?(changeset.pool) do
-      true -> set_autoscaling(changeset.pool, changeset.minimum_count, conn)
-      false -> set_size(changeset.pool, changeset.minimum_count, conn)
+    case autoscaling_enabled?(changeset.managed_pool.pool) do
+      true -> set_autoscaling(changeset.managed_pool.pool, changeset.minimum_count, conn)
+      false -> set_size(changeset.managed_pool.pool, changeset.minimum_count, conn)
     end
   end
 
@@ -83,7 +83,7 @@ defmodule Ballast.NodePool.Adapters.GKE do
   @spec set_instance_count(Ballast.NodePool.t(), Tesla.Client.t()) :: Ballast.NodePool.t()
   defp set_instance_count(%NodePool{data: %{instanceGroupUrls: urls}} = pool, conn) do
     instance_count = Enum.reduce(urls, 0, fn url, agg -> agg + get_instance_group_size(url, conn) end)
-    %NodePool{pool | instance_count: instance_count}
+    %NodePool{pool | instance_count: instance_count, zone_count: length(urls)}
   end
 
   @spec get_instance_group_size(String.t(), Tesla.Client.t()) :: integer

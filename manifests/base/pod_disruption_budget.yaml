@@ -3,4 +3,7 @@ kind: PodDisruptionBudget
 metadata:
   name: ballast
 spec:
-  maxUnavailable: 0
+  minAvailable: 100%
+  selector:
+    matchLabels:
+      k8s-app: ballast

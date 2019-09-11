@@ -7,8 +7,8 @@ defmodule Ballast.NodePool do
   @node_pool_pressure_percent 90
   @node_pool_pressure_threshold @node_pool_pressure_percent / 100
 
-  alias Ballast.{NodePool}
-  alias Ballast.PoolPolicy.Changeset
+  alias Ballast.NodePool
+  alias Ballast.PoolPolicy.{Changeset, ManagedPool}
   alias Ballast.Sys.Instrumentation, as: Inst
 
   defstruct [
@@ -20,7 +20,8 @@ defmodule Ballast.NodePool do
     :location,
     :name,
     :data,
-    :under_pressure
+    :under_pressure,
+    :zone_count
   ]
 
   @typedoc "Node pool metadata"
@@ -31,6 +32,7 @@ defmodule Ballast.NodePool do
           instance_count: integer | nil,
           minimum_count: integer | nil,
           maximum_count: integer | nil,
+          zone_count: integer | nil,
           name: String.t(),
           data: map | nil,
           under_pressure: boolean | nil
@@ -115,27 +117,35 @@ defmodule Ballast.NodePool do
       iex> node_pool = Ballast.NodePool.new("my-proj", "my-loc", "my-cluster", "my-pool")
       ...> managed_pool = %Ballast.PoolPolicy.ManagedPool{pool: node_pool, minimum_percent: 30, minimum_instances: 1}
       ...> source_pool = %Ballast.NodePool{instance_count: 10}
-      ...> changeset = Ballast.PoolPolicy.Changeset.new(managed_pool, source_pool)
+      ...> policy = %Ballast.PoolPolicy{name: "gke-scale-nodepool-test", pool: source_pool, managed_pools: [managed_pool]}
+      ...> changeset = Ballast.PoolPolicy.Changeset.new(managed_pool, policy)
       ...> Ballast.NodePool.scale(changeset, Ballast.conn())
       :ok
   """
   @spec scale(Changeset.t(), Tesla.Client.t()) :: :ok | {:error, Tesla.Env.t()}
   def scale(%Changeset{strategy: :nothing} = changeset, _) do
-    {measurements, metadata} = measurements_and_metadata(changeset)
+    {measurements, metadata} = Changeset.measurements_and_metadata(changeset)
     Inst.provider_scale_pool_skipped(measurements, metadata)
     :ok
   end
 
-  def scale(%Changeset{minimum_count: count, pool: %NodePool{instance_count: count}} = changeset, _) do
-    {measurements, metadata} = measurements_and_metadata(changeset)
+  def scale(
+        %Changeset{
+          minimum_count: desired_minimum,
+          managed_pool: %ManagedPool{pool: %NodePool{instance_count: current_minimum}}
+        } = changeset,
+        _
+      )
+      when desired_minimum == current_minimum do
+    {measurements, metadata} = Changeset.measurements_and_metadata(changeset)
     Inst.provider_scale_pool_skipped(measurements, metadata)
     :ok
   end
 
   def scale(%Changeset{} = changeset, conn) do
-    adapter = adapter_for(changeset.pool)
+    adapter = adapter_for(changeset.managed_pool.pool)
     {duration, response} = :timer.tc(adapter, :scale, [changeset, conn])
-    {measurements, metadata} = measurements_and_metadata(changeset)
+    {measurements, metadata} = Changeset.measurements_and_metadata(changeset)
 
     measurements = Map.put(measurements, :duration, duration)
 
@@ -184,22 +194,6 @@ defmodule Ballast.NodePool do
   @spec node_under_pressure?(map) :: boolean()
   defp node_under_pressure?(node) do
     !Ballast.Kube.Node.ready?(node) || Ballast.Kube.Node.resources_constrained?(node)
-  end
-
-  @doc false
-  @spec measurements_and_metadata(Changeset.t()) :: {map, map}
-  defp measurements_and_metadata(changeset) do
-    measurements = %{
-      source_pool_current_count: changeset.source_count,
-      managed_pool_current_count: changeset.pool.instance_count,
-      managed_pool_new_minimum_count: changeset.minimum_count,
-      managed_pool_current_minimum_count: changeset.pool.minimum_count,
-      managed_pool_current_maximum_count: changeset.pool.maximum_count
-    }
-
-    metadata = %{pool: changeset.pool.name, strategy: changeset.strategy}
-
-    {measurements, metadata}
   end
 
   # Mocking out for multi-provider. Should take a NodePool or PoolPolicy and determine which cloud provider to use.

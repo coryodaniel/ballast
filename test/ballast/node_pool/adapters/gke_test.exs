@@ -44,9 +44,10 @@ defmodule Ballast.NodePool.Adapters.GKETest do
 
       managed_pool = %Ballast.PoolPolicy.ManagedPool{pool: node_pool, minimum_percent: 10, minimum_instances: 1}
       source_pool = %Ballast.NodePool{instance_count: 10}
-      changeset = Ballast.PoolPolicy.Changeset.new(managed_pool, source_pool)
+      policy = %Ballast.PoolPolicy{pool: source_pool}
+      changeset = Ballast.PoolPolicy.Changeset.new(managed_pool, policy)
 
-      refute GKE.autoscaling_enabled?(changeset.pool)
+      refute GKE.autoscaling_enabled?(changeset.managed_pool.pool)
       assert {:ok, _} = GKE.scale(changeset, conn)
     end
 
@@ -59,9 +60,10 @@ defmodule Ballast.NodePool.Adapters.GKETest do
 
       managed_pool = %Ballast.PoolPolicy.ManagedPool{pool: node_pool, minimum_percent: 10, minimum_instances: 1}
       source_pool = %Ballast.NodePool{instance_count: 10}
-      changeset = Ballast.PoolPolicy.Changeset.new(managed_pool, source_pool)
+      policy = %Ballast.PoolPolicy{pool: source_pool}
+      changeset = Ballast.PoolPolicy.Changeset.new(managed_pool, policy)
 
-      assert GKE.autoscaling_enabled?(changeset.pool)
+      assert GKE.autoscaling_enabled?(changeset.managed_pool.pool)
       assert {:ok, _} = GKE.scale(changeset, conn)
     end
   end

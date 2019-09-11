@@ -61,6 +61,12 @@ resource "google_container_node_pool" "od-n1-1" {
       node-type  = "on-demand"
     }
   }
+
+  lifecycle {
+    ignore_changes = [
+      autoscaling
+    ]
+  }
 }
 
 resource "google_container_node_pool" "pvm-n1-1" {
@@ -91,6 +97,12 @@ resource "google_container_node_pool" "pvm-n1-1" {
       node-group = "${local.node_group}"
       node-type  = "preemptible"
     }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      autoscaling
+    ]
   }
 }
 
@@ -123,6 +135,12 @@ resource "google_container_node_pool" "pvm-n1-2" {
       node-type  = "preemptible"
     }
   }
+
+  lifecycle {
+    ignore_changes = [
+      autoscaling
+    ]
+  }
 }
 
 resource "google_container_node_pool" "other" {
@@ -133,7 +151,7 @@ resource "google_container_node_pool" "other" {
 
   autoscaling {
     min_node_count = 1
-    max_node_count = 5
+    max_node_count = 2
   }
 
   management {

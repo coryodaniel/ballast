@@ -58,8 +58,8 @@ defmodule Ballast.PoolPolicy do
   Generates changesets for managed pools.
   """
   @spec changesets(t) :: {:ok, t} | {:error, any()}
-  def changesets(%PoolPolicy{managed_pools: managed_pools, pool: pool} = policy) do
-    changesets = Enum.map(managed_pools, fn mp -> Changeset.new(mp, pool) end)
+  def changesets(%PoolPolicy{managed_pools: managed_pools} = policy) do
+    changesets = Enum.map(managed_pools, fn mp -> Changeset.new(mp, policy) end)
 
     {:ok, %PoolPolicy{policy | changesets: changesets}}
   end

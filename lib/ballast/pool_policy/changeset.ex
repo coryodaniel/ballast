@@ -3,22 +3,22 @@ defmodule Ballast.PoolPolicy.Changeset do
   Changes to apply to a managed pool
   """
 
-  alias Ballast.NodePool
+  alias Ballast.{NodePool, PoolPolicy}
   alias Ballast.PoolPolicy.{Changeset, ManagedPool}
 
-  defstruct [:pool, :minimum_count, :source_count, :strategy]
+  defstruct [:managed_pool, :minimum_count, :policy, :strategy]
 
   @typedoc """
-  * `pool` - the managed pool changeset will be applied to
+  * `managed_pool` - the managed pool changeset will be applied to
   * `minimum_count` - the new minimum count for the autoscaler or cluster
-  * `source_count` - the current count of the source pool
   * `strategy` - what ballast thinks is happening to the source pool - poor name.
+  * `policy` - the policy being applied
   """
   @type t :: %__MODULE__{
-          pool: NodePool.t(),
-          source_count: integer,
+          managed_pool: ManagedPool.t(),
           minimum_count: integer,
-          strategy: :nothing | :scale_up | :scale_down
+          strategy: :nothing | :scale_up | :scale_down,
+          policy: PoolPolicy.t()
         }
 
   @doc """
@@ -27,25 +27,111 @@ defmodule Ballast.PoolPolicy.Changeset do
   ## Examples
       iex> managed_pool = %Ballast.PoolPolicy.ManagedPool{pool: %Ballast.NodePool{name: "managed-pool"}, minimum_percent: 30, minimum_instances: 1}
       ...> source_pool = %Ballast.NodePool{instance_count: 10}
-      ...> Ballast.PoolPolicy.Changeset.new(managed_pool, source_pool)
-      %Ballast.PoolPolicy.Changeset{source_count: 10, minimum_count: 3, pool: %Ballast.NodePool{cluster: nil, data: nil, instance_count: nil, location: nil, name: "managed-pool", project: nil, under_pressure: nil}, strategy: :scale_down}
+      ...> policy = %Ballast.PoolPolicy{pool: source_pool, managed_pools: [managed_pool]}
+      ...> Ballast.PoolPolicy.Changeset.new(managed_pool, policy)
+      %Ballast.PoolPolicy.Changeset{
+        managed_pool: %Ballast.PoolPolicy.ManagedPool{
+          minimum_instances: 1,
+          minimum_percent: 30,
+          pool: %Ballast.NodePool{
+            cluster: nil,
+            data: nil,
+            instance_count: nil,
+            location: nil,
+            maximum_count: nil,
+            minimum_count: nil,
+            name: "managed-pool",
+            project: nil,
+            under_pressure: nil,
+            zone_count: nil
+          }
+        },
+        minimum_count: 3,
+        policy: %Ballast.PoolPolicy{
+          changesets: [],
+          cooldown_seconds: nil,
+          managed_pools: [
+            %Ballast.PoolPolicy.ManagedPool{
+              minimum_instances: 1,
+              minimum_percent: 30,
+              pool: %Ballast.NodePool{
+                cluster: nil,
+                data: nil,
+                instance_count: nil,
+                location: nil,
+                maximum_count: nil,
+                minimum_count: nil,
+                name: "managed-pool",
+                project: nil,
+                under_pressure: nil,
+                zone_count: nil
+              }
+            }
+          ],
+          name: nil,
+          pool: %Ballast.NodePool{
+            cluster: nil,
+            data: nil,
+            instance_count: 10,
+            location: nil,
+            maximum_count: nil,
+            minimum_count: nil,
+            name: nil,
+            project: nil,
+            under_pressure: nil,
+            zone_count: nil
+          }
+        },
+        strategy: :scale_down
+      }
   """
-  @spec new(ManagedPool.t(), NodePool.t()) :: t
-  def new(managed_pool, %NodePool{instance_count: source_count} = source_pool) do
-    calculated_minimum_count =
+  @spec new(ManagedPool.t(), PoolPolicy.t()) :: t
+  def new(%ManagedPool{} = managed_pool, %PoolPolicy{} = policy) do
+    changeset = %Changeset{
+      managed_pool: managed_pool,
+      minimum_count: managed_pool.minimum_instances,
+      strategy: strategy(managed_pool.pool, policy.pool),
+      policy: policy
+    }
+
+    calculate_minimum_and_update(changeset)
+  end
+
+  @spec calculate_minimum_and_update(Changeset.t()) :: Changeset.t()
+  def calculate_minimum_and_update(%Changeset{} = changeset) do
+    calculated_minimum =
       calc_new_minimum_count(
-        source_count,
-        managed_pool.minimum_percent,
-        managed_pool.minimum_instances,
-        managed_pool.pool.maximum_count
+        changeset.policy.pool.instance_count,
+        changeset.policy.pool.zone_count,
+        changeset.managed_pool.minimum_percent,
+        changeset.managed_pool.minimum_instances,
+        changeset.managed_pool.pool.maximum_count
       )
 
-    %Changeset{
-      pool: managed_pool.pool,
-      source_count: source_count,
-      minimum_count: calculated_minimum_count,
-      strategy: strategy(managed_pool.pool, source_pool)
+    %Changeset{changeset | minimum_count: calculated_minimum}
+  end
+
+  @doc "Metrics/logging metadata and measurements"
+  @spec measurements_and_metadata(Changeset.t()) :: {map, map}
+  def measurements_and_metadata(%Changeset{} = changeset), do: {measurements(changeset), metadata(changeset)}
+
+  @spec measurements(Changeset.t()) :: map
+  defp measurements(%Changeset{} = changeset) do
+    %{
+      source_pool_current_instance_count: changeset.policy.pool.instance_count,
+      source_pool_zone_count: changeset.policy.pool.zone_count,
+      managed_pool_current_instance_count: changeset.managed_pool.pool.instance_count,
+      managed_pool_current_autoscaling_minimum: changeset.managed_pool.pool.minimum_count,
+      managed_pool_current_autoscaling_maximum: changeset.managed_pool.pool.maximum_count,
+      managed_pool_conf_minimum_percent: changeset.managed_pool.minimum_percent,
+      managed_pool_conf_minimum_instances: changeset.managed_pool.minimum_instances,
+      managed_pool_new_autoscaling_minimum: changeset.minimum_count
     }
+  end
+
+  @spec metadata(Changeset.t()) :: map
+  defp metadata(%Changeset{} = changeset) do
+    %{pool: changeset.managed_pool.pool.name, strategy: changeset.strategy, policy: changeset.policy.name}
   end
 
   @doc """
@@ -98,23 +184,37 @@ defmodule Ballast.PoolPolicy.Changeset do
 
   ## Examples
     When the calculated count is less than the minimum count, return minimum
-      iex> {current_source_count, minimum_percent, minimum_count, maximum_count} = {10, 10, 2, 100}
-      ...> Ballast.PoolPolicy.Changeset.calc_new_minimum_count(current_source_count, minimum_percent, minimum_count, maximum_count)
+      iex> {current_source_instance_count, source_zone_count, minimum_percent, minimum_count, maximum_count} = {10, 1, 10, 2, 100}
+      ...> Ballast.PoolPolicy.Changeset.calc_new_minimum_count(current_source_instance_count, source_zone_count, minimum_percent, minimum_count, maximum_count)
       2
 
     When the calculated count is greater than minimum count, return calculated
-      iex> {current_source_count, minimum_percent, minimum_count, maximum_count} = {10, 50, 2, 100}
-      ...> Ballast.PoolPolicy.Changeset.calc_new_minimum_count(current_source_count, minimum_percent, minimum_count, maximum_count)
+      iex> {current_source_instance_count, source_zone_count, minimum_percent, minimum_count, maximum_count} = {10, 1, 50, 2, 100}
+      ...> Ballast.PoolPolicy.Changeset.calc_new_minimum_count(current_source_instance_count, source_zone_count, minimum_percent, minimum_count, maximum_count)
       5
 
     When the calculated count is greater than maximum count, return maximum
-      iex> {current_source_count, minimum_percent, minimum_count, maximum_count} = {200, 100, 2, 33}
-      ...> Ballast.PoolPolicy.Changeset.calc_new_minimum_count(current_source_count, minimum_percent, minimum_count, maximum_count)
+      iex> {current_source_instance_count, source_zone_count, minimum_percent, minimum_count, maximum_count} = {200, 1, 100, 2, 33}
+      ...> Ballast.PoolPolicy.Changeset.calc_new_minimum_count(current_source_instance_count, source_zone_count, minimum_percent, minimum_count, maximum_count)
       33
+
+    For a regional cluster when the calculated count is greater than minimum count, return calculated
+      iex> {current_source_instance_count, source_zone_count, minimum_percent, minimum_count, maximum_count} = {10, 3, 50, 2, 100}
+      ...> Ballast.PoolPolicy.Changeset.calc_new_minimum_count(current_source_instance_count, source_zone_count, minimum_percent, minimum_count, maximum_count)
+      2
   """
-  @spec calc_new_minimum_count(integer, integer, integer, integer) :: integer
-  def calc_new_minimum_count(source_pool_current_count, minimum_percent, minimum_instances, managed_pool_max_count) do
-    new_minimum_count = round(source_pool_current_count * (minimum_percent / 100))
+  @spec calc_new_minimum_count(integer, integer, integer, integer, integer) :: integer
+  def calc_new_minimum_count(
+        source_pool_current_count,
+        source_pool_zone_count,
+        minimum_percent,
+        minimum_instances,
+        managed_pool_max_count
+      ) do
+    source_pool_zone_count = source_pool_zone_count || 1
+    minimum_instances_for_cluster = source_pool_current_count * (minimum_percent / 100)
+    new_minimum_count = round(minimum_instances_for_cluster / source_pool_zone_count)
+
     do_calc_new_minimum_count(new_minimum_count, minimum_instances, managed_pool_max_count)
   end
 
@@ -122,9 +222,9 @@ defmodule Ballast.PoolPolicy.Changeset do
        when is_integer(managed_pool_max_count) and new_minimum_count >= managed_pool_max_count,
        do: managed_pool_max_count
 
-  defp do_calc_new_minimum_count(new_minimum_count, minimum_instances, _managed_pool_max_count)
+  defp do_calc_new_minimum_count(new_minimum_count, minimum_instances, _)
        when new_minimum_count > minimum_instances,
        do: new_minimum_count
 
-  defp do_calc_new_minimum_count(_, minimum_instances, _managed_pool_max_count), do: minimum_instances
+  defp do_calc_new_minimum_count(_, minimum_instances, _), do: minimum_instances
 end

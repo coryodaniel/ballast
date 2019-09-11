@@ -5,10 +5,7 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    rollingUpdate:
-      maxSurge: 1000%
-      maxUnavailable: 100%
-    type: RollingUpdate
+    type: Recreate
   template:
     spec:
       volumes:
@@ -65,6 +62,9 @@ spec:
             requests:
               cpu: 50m
               memory: 100Mi
+            limits:
+              cpu: 500m
+              memory: 500Mi
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
