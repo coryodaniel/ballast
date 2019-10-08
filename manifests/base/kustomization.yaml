@@ -4,10 +4,9 @@ namespace: default
 commonLabels:
   k8s-app: ballast
 resources:
-- custom_resource_definition.yaml
-- cluster_role.yaml
-- cluster_role_binding.yaml
-- service_account.yaml
-- deployment.yaml
-- pod_disruption_budget.yaml
-- service.yaml
+  - custom_resource_definition.yaml
+  - cluster_role.yaml
+  - cluster_role_binding.yaml
+  - service_account.yaml
+  - deployment.yaml
+  - service.yaml
